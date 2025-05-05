@@ -6,4 +6,5 @@ dist/
 build/
 *.spec
 *.exe
+logs/
 settings.json
