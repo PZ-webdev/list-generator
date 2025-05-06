@@ -3,6 +3,7 @@ import re
 import os
 import shutil
 import platform
+from utils.resource_helper import resource_path
 
 
 def get_wkhtmltopdf_path():
@@ -51,7 +52,7 @@ def generate_pdf(file_path):
     html_ready = transform_control_codes(raw_content)
     html_ready = center_only_first_page(html_ready)
 
-    template_path = os.path.join('templates', 'pdf_template.html')
+    template_path = resource_path('templates/pdf_template.html')
     with open(template_path, 'r', encoding='utf-8') as template_file:
         html_template = template_file.read()
 
@@ -71,7 +72,7 @@ def generate_pdf_to_path(file_path, output_pdf_path):
     html_ready = transform_control_codes(raw_content)
     html_ready = center_only_first_page(html_ready)
 
-    template_path = os.path.join('templates', 'pdf_template.html')
+    template_path = resource_path('templates/pdf_template.html')
     with open(template_path, 'r', encoding='utf-8') as tpl_file:
         html_template = tpl_file.read()
 
