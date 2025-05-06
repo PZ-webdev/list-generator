@@ -2,6 +2,7 @@ import tkinter as tk
 import re
 import json
 import os
+from tkinter import ttk
 from service.pdf_generator import generate_pdf_to_path
 from utils import notifier
 from utils.logger import log_info, log_error, log_warning
@@ -29,11 +30,21 @@ class MainScene:
             lot_entry = tk.Entry(row, width=10)
             lot_entry.pack(side='left', padx=5)
 
+            def validate_digit_input(new_value):
+                return new_value.isdigit() or new_value == ''
+
+            vcmd = (self.frame.register(validate_digit_input), '%P')
+            lot_entry.config(validate='key', validatecommand=vcmd)
+
             tk.Button(
                 row,
                 text='GENERUJ',
                 command=lambda b=branch, le=lot_entry: self.generate_for_branch(b, le.get())
             ).pack(side='right', padx=5)
+
+        self.progress = ttk.Progressbar(self.frame, orient='horizontal', mode='determinate')
+        self.progress.pack(fill='x', padx=10, pady=10)
+        self.progress.pack_forget()
 
     def load_branches(self):
         if os.path.exists(BRANCHES_FILE):
@@ -47,7 +58,6 @@ class MainScene:
         log_info(f'Start generowania dla oddziału: {branch["name"]}, lot: {lot_number}')
         os.makedirs(output_dir, exist_ok=True)
 
-        # Przygotuj regex do szukania katalogu LOT_S_XX.*
         pattern = self.get_lot_pattern(lot_number)
         log_info(f'Używam wzorca regex: {pattern.pattern}')
 
@@ -66,23 +76,44 @@ class MainScene:
 
         lot_path = os.path.join(input_dir, matched_folder)
 
+        matching_files = []
         for root, _, files in os.walk(lot_path):
             for file in files:
                 if file.upper().startswith('LKON_S') and file.upper().endswith('.TXT'):
-                    relative_path = os.path.relpath(root, input_dir)
-                    target_folder = os.path.join(output_dir, relative_path)
-                    os.makedirs(target_folder, exist_ok=True)
+                    matching_files.append((root, file))
 
-                    txt_path = os.path.join(root, file)
-                    output_pdf_path = os.path.join(target_folder, os.path.splitext(file)[0] + '.pdf')
+        total_files = len(matching_files)
+        if total_files == 0:
+            notifier.show_info(f'Brak plików LKON_S w {lot_path}')
+            return
 
-                    try:
-                        log_info(f'Generowanie PDF z pliku: {txt_path}')
-                        generate_pdf_to_path(txt_path, output_pdf_path)
-                        log_info(f'Zapisano PDF do: {output_pdf_path}')
-                    except Exception as e:
-                        log_error(f'Błąd generowania PDF dla {txt_path}: {e}')
-                        notifier.show_error(f'Błąd przy {txt_path}: {e}')
+        self.progress['value'] = 0
+        self.progress['maximum'] = total_files
+        self.progress.pack(fill='x', padx=10, pady=10)
+        self.frame.update_idletasks()
+
+        for i, (root, file) in enumerate(matching_files, 1):
+            relative_path = os.path.relpath(root, input_dir)
+            target_folder = os.path.join(output_dir, relative_path)
+            os.makedirs(target_folder, exist_ok=True)
+
+            txt_path = os.path.join(root, file)
+            output_pdf_path = os.path.join(target_folder, os.path.splitext(file)[0] + '.pdf')
+
+            try:
+                log_info(f'Generowanie PDF z pliku: {txt_path}')
+                generate_pdf_to_path(txt_path, output_pdf_path)
+                log_info(f'Zapisano PDF do: {output_pdf_path}')
+            except Exception as e:
+                log_error(f'Błąd generowania PDF dla {txt_path}: {e}')
+                notifier.show_error(f'Błąd przy {txt_path}: {e}')
+
+            self.progress['value'] = i
+            self.frame.update_idletasks()
+
+        notifier.show_success(f'Wygenerowano {total_files} plików PDF dla lotu nr.: {lot_number}')
+        self.progress.pack_forget()
+
 
     def get_lot_pattern(self, lot_number):
         lot_str = f"{int(lot_number):02d}"
