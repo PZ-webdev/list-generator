@@ -51,23 +51,32 @@ def generate_pdf(file_path):
     html_ready = transform_control_codes(raw_content)
     html_ready = center_only_first_page(html_ready)
 
-    # Kluczowy szablon HTML z CSS!
-    html_template = f'''
-    <html>
-    <head>
-    <meta charset="UTF-8">
-    <style>
-    body {{ font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; }}
-    h1 {{ margin-left: 40mm; }}
-    h3 {{ margin-left: 40mm; }}
-    .page-break {{ page-break-after: always; }}
-    .first-page-inner {{ font-size: 12pt; margin-top: -10mm; margin-left: 22mm; line-height: 1.2; }}
-    </style>
-    </head>
-    <body><pre>{html_ready}</pre></body>
-    </html>
-    '''
+    template_path = os.path.join('templates', 'pdf_template.html')
+    with open(template_path, 'r', encoding='utf-8') as template_file:
+        html_template = template_file.read()
+
+    html_content = html_template.replace('{{ content }}', html_ready)
 
     output_path = os.path.splitext(file_path)[0] + '.pdf'
-    pdfkit.from_string(html_template, output_path, configuration=config)
+
+    pdfkit.from_string(html_content, output_path, configuration=config)
+
     return output_path
+
+
+def generate_pdf_bytes(file_path):
+    with open(file_path, 'r', encoding='cp852') as f:
+        raw_content = f.read()
+
+    html_ready = transform_control_codes(raw_content)
+    html_ready = center_only_first_page(html_ready)
+
+    template_path = os.path.join('templates', 'pdf_template.html')
+    with open(template_path, 'r', encoding='utf-8') as tpl_file:
+        html_template = tpl_file.read()
+
+    final_html = html_template.replace('{{ content }}', html_ready)
+
+    pdf_bytes = pdfkit.from_string(final_html, False, configuration=config)
+
+    return pdf_bytes
