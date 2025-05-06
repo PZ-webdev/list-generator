@@ -2,12 +2,14 @@ import tkinter as tk
 import re
 import json
 import os
-from tkinter import ttk
-from service.pdf_generator import generate_pdf_to_path
+from tkinter import ttk, filedialog
+
+import config
+from service.pdf_generator import generate_pdf_to_path, generate_single_pdf
 from utils import notifier
 from utils.logger import log_info, log_error, log_warning
 
-BRANCHES_FILE = 'branches.json'
+BRANCHES_FILE = config.BRANCHES_FILE
 
 
 class MainScene:
@@ -52,6 +54,10 @@ class MainScene:
                 self.branches = json.load(f)
 
     def generate_for_branch(self, branch, lot_number):
+        if not lot_number.strip().isdigit():
+            notifier.show_warning('Podaj poprawny numer lotu!')
+            return
+        
         input_dir = branch['input']
         output_dir = branch['output']
 
@@ -114,8 +120,27 @@ class MainScene:
         notifier.show_success(f'Wygenerowano {total_files} plików PDF dla lotu nr.: {lot_number}')
         self.progress.pack_forget()
 
+    def generate_single_file(self):
+        file_path = filedialog.askopenfilename(filetypes=[('Text Files', ('*.TXT', '*.txt'))])
+        if file_path:
+            try:
+                log_info(f'Generowanie PDF dla pliku: {file_path}')
+
+                # generate and save file
+                generate_single_pdf(file_path)
+                notifier.show_success('Poprawnie zapisano plik PDF')
+            except Exception as e:
+                log_error('Wystąpił błąd generowania pliku PDF')
+                notifier.show_error(str(e))
 
     def get_lot_pattern(self, lot_number):
         lot_str = f"{int(lot_number):02d}"
         pattern = re.compile(rf'^LOT_S_{lot_str}\.\d+$')
         return pattern
+
+    def on_lot_entry_change(*args):
+        if lot_var.get().strip().isdigit():
+            gen_button.config(state='normal')
+        else:
+            gen_button.config(state='disabled')
+

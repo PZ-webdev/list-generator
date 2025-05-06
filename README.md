@@ -23,5 +23,5 @@ Aplikacja desktopowa w Pythonie do generowania plików PDF z plików tekstowych.
 Na Windows:
 
 ```shell
-   pyinstaller --onefile --windowed main.py
+   pyinstaller main.spec
 ```

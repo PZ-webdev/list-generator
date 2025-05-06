@@ -47,7 +47,7 @@ def center_only_first_page(html):
     return centered + '<div class="page-break"></div>' + parts[1]
 
 
-def generate_pdf(file_path):
+def generate_single_pdf(file_path):
     with open(file_path, 'r', encoding='cp852') as f:
         raw_content = f.read()
 

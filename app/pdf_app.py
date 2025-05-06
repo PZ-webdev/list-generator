@@ -3,7 +3,6 @@ import tkinter as tk
 from components.menu import AppMenu
 from scenes.branches_scene import BranchesScene
 from scenes.main_scene import MainScene
-from scenes.paths_scene import PathsScene
 from utils import notifier
 
 
@@ -36,10 +35,6 @@ class PdfApp:
     def show_main_scene(self):
         self.clear_main_frame()
         MainScene(self).build()
-
-    def show_paths_scene(self):
-        self.clear_main_frame()
-        PathsScene(self).build()
 
     def show_branches_scene(self):
         self.clear_main_frame()
