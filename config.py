@@ -5,8 +5,7 @@ WINDOW_HEIGHT = 600
 WINDOW_RESIZABLE = False
 
 # Directory settings
-SETTINGS_FILE = 'settings.json'
-NUM_PATHS = 4
+BRANCHES_FILE = 'branches.json'
 
 # Logging
 LOG_LEVEL = 'INFO'

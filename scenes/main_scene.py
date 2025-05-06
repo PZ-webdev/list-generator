@@ -1,13 +1,15 @@
 import tkinter as tk
+import re
 import json
 import os
-import re
+from tkinter import ttk, filedialog
+
 import config
-from tkinter import filedialog, ttk
-from service.pdf_generator import generate_pdf, generate_pdf_to_path
+from service.pdf_generator import generate_pdf_to_path, generate_single_pdf
 from utils import notifier
-from components.tooltip import Tooltip
-from utils.logger import log_info, log_error
+from utils.logger import log_info, log_error, log_warning
+
+BRANCHES_FILE = config.BRANCHES_FILE
 
 
 class MainScene:
@@ -15,81 +17,130 @@ class MainScene:
         self.app = app
         self.frame = tk.Frame(app.main_frame)
         self.frame.pack(fill='both', expand=True)
+        self.branches = []
+        self.load_branches()
 
     def build(self):
-        btn_file = tk.Button(self.frame, text='Wybierz plik TXT', command=self.select_file)
-        btn_file.pack(pady=10)
-        Tooltip(btn_file, "Kliknij, aby wybrać plik i wygenerować PDF")
+        tk.Label(self.frame, text='Lista oddziałów', font=('Arial', 12, 'bold')).pack(pady=10)
 
-        separator = tk.Frame(self.frame, height=2, bd=1, relief='sunken')
-        separator.pack(fill='x', padx=5, pady=15)
+        for branch in self.branches:
+            row = tk.Frame(self.frame, bd=1, relief='solid')
+            row.pack(fill='x', pady=5, padx=10)
 
-        btn_generate = tk.Button(self.frame, text='Generuj ze ścieżek', command=self.generate_from_paths)
-        btn_generate.pack(pady=10)
-        Tooltip(btn_generate, "Kliknij, aby wygenerować PDF z zapisanych ścieżek")
+            tk.Label(row, text=branch['name'], width=20, anchor='w').pack(side='left', padx=5)
 
-    def select_file(self):
+            lot_entry = tk.Entry(row, width=10)
+            lot_entry.pack(side='left', padx=5)
+
+            def validate_digit_input(new_value):
+                return new_value.isdigit() or new_value == ''
+
+            vcmd = (self.frame.register(validate_digit_input), '%P')
+            lot_entry.config(validate='key', validatecommand=vcmd)
+
+            tk.Button(
+                row,
+                text='GENERUJ',
+                command=lambda b=branch, le=lot_entry: self.generate_for_branch(b, le.get())
+            ).pack(side='right', padx=5)
+
+        self.progress = ttk.Progressbar(self.frame, orient='horizontal', mode='determinate')
+        self.progress.pack(fill='x', padx=10, pady=10)
+        self.progress.pack_forget()
+
+    def load_branches(self):
+        if os.path.exists(BRANCHES_FILE):
+            with open(BRANCHES_FILE, 'r', encoding='utf-8') as f:
+                self.branches = json.load(f)
+
+    def generate_for_branch(self, branch, lot_number):
+        if not lot_number.strip().isdigit():
+            notifier.show_warning('Podaj poprawny numer lotu!')
+            return
+        
+        input_dir = branch['input']
+        output_dir = branch['output']
+
+        log_info(f'Start generowania dla oddziału: {branch["name"]}, lot: {lot_number}')
+        os.makedirs(output_dir, exist_ok=True)
+
+        pattern = self.get_lot_pattern(lot_number)
+        log_info(f'Używam wzorca regex: {pattern.pattern}')
+
+        matched_folder = None
+        for folder in os.listdir(input_dir):
+            log_info(f'Sprawdzam folder: {folder}')
+            if pattern.match(folder):
+                matched_folder = folder
+                log_info(f'Znaleziono dopasowany folder: {matched_folder}')
+                break
+
+        if not matched_folder:
+            log_warning(f'Nie znaleziono katalogu LOT_S_{lot_number} w {input_dir}')
+            notifier.show_warning(f'Nie znaleziono katalogu dla lotu {lot_number}')
+            return
+
+        lot_path = os.path.join(input_dir, matched_folder)
+
+        matching_files = []
+        for root, _, files in os.walk(lot_path):
+            for file in files:
+                if file.upper().startswith('LKON_S') and file.upper().endswith('.TXT'):
+                    matching_files.append((root, file))
+
+        total_files = len(matching_files)
+        if total_files == 0:
+            notifier.show_info(f'Brak plików LKON_S w {lot_path}')
+            return
+
+        self.progress['value'] = 0
+        self.progress['maximum'] = total_files
+        self.progress.pack(fill='x', padx=10, pady=10)
+        self.frame.update_idletasks()
+
+        for i, (root, file) in enumerate(matching_files, 1):
+            relative_path = os.path.relpath(root, input_dir)
+            target_folder = os.path.join(output_dir, relative_path)
+            os.makedirs(target_folder, exist_ok=True)
+
+            txt_path = os.path.join(root, file)
+            output_pdf_path = os.path.join(target_folder, os.path.splitext(file)[0] + '.pdf')
+
+            try:
+                log_info(f'Generowanie PDF z pliku: {txt_path}')
+                generate_pdf_to_path(txt_path, output_pdf_path)
+                log_info(f'Zapisano PDF do: {output_pdf_path}')
+            except Exception as e:
+                log_error(f'Błąd generowania PDF dla {txt_path}: {e}')
+                notifier.show_error(f'Błąd przy {txt_path}: {e}')
+
+            self.progress['value'] = i
+            self.frame.update_idletasks()
+
+        notifier.show_success(f'Wygenerowano {total_files} plików PDF dla lotu nr.: {lot_number}')
+        self.progress.pack_forget()
+
+    def generate_single_file(self):
         file_path = filedialog.askopenfilename(filetypes=[('Text Files', ('*.TXT', '*.txt'))])
         if file_path:
             try:
                 log_info(f'Generowanie PDF dla pliku: {file_path}')
 
                 # generate and save file
-                generate_pdf(file_path)
+                generate_single_pdf(file_path)
                 notifier.show_success('Poprawnie zapisano plik PDF')
             except Exception as e:
                 log_error('Wystąpił błąd generowania pliku PDF')
                 notifier.show_error(str(e))
 
-    def generate_from_paths(self):
-        try:
-            log_info('Rozpoczynam przetwarzanie ścieżek z settings.json')
+    def get_lot_pattern(self, lot_number):
+        lot_str = f"{int(lot_number):02d}"
+        pattern = re.compile(rf'^LOT_S_{lot_str}\.\d+$')
+        return pattern
 
-            with open(config.SETTINGS_FILE, 'r') as f:
-                data = json.load(f)
-                mappings = data.get('mappings', [])
+    def on_lot_entry_change(*args):
+        if lot_var.get().strip().isdigit():
+            gen_button.config(state='normal')
+        else:
+            gen_button.config(state='disabled')
 
-            progress = ttk.Progressbar(self.frame, orient='horizontal', length=400, mode='determinate')
-            progress.pack(pady=10)
-
-            all_files = []
-            pattern = re.compile(r'LKON_S\d+\.TXT', re.IGNORECASE)
-
-            for entry in mappings:
-                input_dir = entry.get('input')
-                if not input_dir:
-                    continue
-                for root, dirs, files in os.walk(input_dir):
-                    if not (re.search(r'SEKCJA\.\d+', root) or os.path.basename(root).startswith('LOT_S_')):
-                        continue
-                    for file in files:
-                        if pattern.match(file):
-                            all_files.append((root, file, entry['output'], input_dir))
-
-            progress['maximum'] = len(all_files)
-
-            for idx, (root, file, output_dir, input_dir) in enumerate(all_files, start=1):
-                relative_path = os.path.relpath(root, input_dir)
-                target_dir = os.path.join(output_dir, relative_path)
-                os.makedirs(target_dir, exist_ok=True)
-
-                txt_path = os.path.join(root, file)
-                output_pdf_path = os.path.join(target_dir, os.path.splitext(file)[0] + '.pdf')
-
-                try:
-                    log_info(f'Generowanie PDF z pliku: {txt_path}')
-                    generate_pdf_to_path(txt_path, output_pdf_path)
-                    log_info(f'Zapisano PDF do: {output_pdf_path}')
-                except Exception as e:
-                    log_error(f'Błąd przy pliku {txt_path}: {e}')
-                    notifier.show_error(f'Błąd przy {txt_path}: {e}')
-
-                progress['value'] = idx
-                self.frame.update_idletasks()
-
-            notifier.show_success('Wszystkie pliki zostały przetworzone.')
-            log_info('Zakończono przetwarzanie wszystkich plików.')
-
-        except Exception as e:
-            log_error(f'Błąd wczytywania ścieżek: {e}')
-            notifier.show_error(f'Błąd wczytywania ścieżek: {e}')

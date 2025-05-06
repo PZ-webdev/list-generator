@@ -3,6 +3,8 @@ import re
 import os
 import shutil
 import platform
+
+from utils.logger import log_info, log_error
 from utils.resource_helper import resource_path
 
 
@@ -45,7 +47,7 @@ def center_only_first_page(html):
     return centered + '<div class="page-break"></div>' + parts[1]
 
 
-def generate_pdf(file_path):
+def generate_single_pdf(file_path):
     with open(file_path, 'r', encoding='cp852') as f:
         raw_content = f.read()
 

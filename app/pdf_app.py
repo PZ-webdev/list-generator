@@ -1,8 +1,8 @@
 import config
 import tkinter as tk
 from components.menu import AppMenu
+from scenes.branches_scene import BranchesScene
 from scenes.main_scene import MainScene
-from scenes.paths_scene import PathsScene
 from utils import notifier
 
 
@@ -36,9 +36,9 @@ class PdfApp:
         self.clear_main_frame()
         MainScene(self).build()
 
-    def show_paths_scene(self):
+    def show_branches_scene(self):
         self.clear_main_frame()
-        PathsScene(self).build()
+        BranchesScene(self).build()
 
     def show_about(self):
         notifier.show_success('Wersja 0.2.0', 'Informacja')
