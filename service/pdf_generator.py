@@ -80,3 +80,18 @@ def generate_pdf_bytes(file_path):
     pdf_bytes = pdfkit.from_string(final_html, False, configuration=config)
 
     return pdf_bytes
+
+
+def generate_pdf_to_path(file_path, output_pdf_path):
+    with open(file_path, 'r', encoding='cp852') as f:
+        raw_content = f.read()
+
+    html_ready = transform_control_codes(raw_content)
+    html_ready = center_only_first_page(html_ready)
+
+    template_path = os.path.join('templates', 'pdf_template.html')
+    with open(template_path, 'r', encoding='utf-8') as tpl_file:
+        html_template = tpl_file.read()
+
+    filled_html = html_template.replace('{{ content }}', html_ready)
+    pdfkit.from_string(filled_html, output_pdf_path, configuration=config)

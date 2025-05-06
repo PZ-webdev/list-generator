@@ -1,8 +1,10 @@
 import tkinter as tk
 import json
 import os
+import re
+import shutil
 from tkinter import filedialog
-from service.pdf_generator import generate_pdf, generate_pdf_bytes
+from service.pdf_generator import generate_pdf, generate_pdf_bytes, generate_pdf_to_path
 from utils import notifier
 from components.tooltip import Tooltip
 from utils.logger import log_info, log_warning, log_error
@@ -48,6 +50,8 @@ class MainScene:
                 data = json.load(f)
                 mappings = data.get('mappings', [])
 
+            pattern = re.compile(r'LKON_S\d+\.TXT', re.IGNORECASE)
+
             for idx, entry in enumerate(mappings):
                 input_dir = entry.get('input')
                 output_dir = entry.get('output')
@@ -58,26 +62,25 @@ class MainScene:
                     log_warning(f'[{idx + 1}] Pominięto wpis bez input/output')
                     continue
 
-                os.makedirs(output_dir, exist_ok=True)
+                for root, dirs, files in os.walk(input_dir):
+                    if not (re.search(r'SEKCJA\.\d+', root) or os.path.basename(root).startswith('LOT_S_')):
+                        continue
 
-                for root, _, files in os.walk(input_dir):
+                    relative_path = os.path.relpath(root, input_dir)
+                    target_dir = os.path.join(output_dir, relative_path)
+                    os.makedirs(target_dir, exist_ok=True)
+
                     for file in files:
-                        if file.upper() == 'LKON_S01.TXT':
+                        if pattern.match(file):
                             txt_path = os.path.join(root, file)
                             try:
                                 log_info(f'Generowanie PDF z pliku: {txt_path}')
-                                pdf_bytes = generate_pdf_bytes(txt_path)
-                                output_pdf_path = os.path.join(output_dir, os.path.splitext(file)[0] + '.pdf')
-
-                                with open(output_pdf_path, 'wb') as out_file:
-                                    out_file.write(pdf_bytes)
-
+                                output_pdf_path = os.path.join(target_dir, os.path.splitext(file)[0] + '.pdf')
+                                generate_pdf_to_path(txt_path, output_pdf_path)
                                 log_info(f'Zapisano PDF do: {output_pdf_path}')
                             except Exception as e:
                                 log_error(f'Błąd przy pliku {txt_path}: {e}')
                                 notifier.show_error(f'Błąd przy {txt_path}: {e}')
-
-                notifier.show_success('Poprawnie zapisano pliki PDF')
         except Exception as e:
             log_error(f'Błąd wczytywania ścieżek: {e}')
             notifier.show_error(f'Błąd wczytywania ścieżek: {e}')
