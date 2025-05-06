@@ -64,24 +64,6 @@ def generate_pdf(file_path):
     return output_path
 
 
-def generate_pdf_bytes(file_path):
-    with open(file_path, 'r', encoding='cp852') as f:
-        raw_content = f.read()
-
-    html_ready = transform_control_codes(raw_content)
-    html_ready = center_only_first_page(html_ready)
-
-    template_path = os.path.join('templates', 'pdf_template.html')
-    with open(template_path, 'r', encoding='utf-8') as tpl_file:
-        html_template = tpl_file.read()
-
-    final_html = html_template.replace('{{ content }}', html_ready)
-
-    pdf_bytes = pdfkit.from_string(final_html, False, configuration=config)
-
-    return pdf_bytes
-
-
 def generate_pdf_to_path(file_path, output_pdf_path):
     with open(file_path, 'r', encoding='cp852') as f:
         raw_content = f.read()

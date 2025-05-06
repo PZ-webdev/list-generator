@@ -41,4 +41,4 @@ class PdfApp:
         PathsScene(self).build()
 
     def show_about(self):
-        notifier.show_success('Generator list PDF\nWersja 0.0.1', 'Informacja')
+        notifier.show_success('Wersja 0.2.0', 'Informacja')

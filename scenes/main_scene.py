@@ -2,12 +2,12 @@ import tkinter as tk
 import json
 import os
 import re
-import shutil
-from tkinter import filedialog
-from service.pdf_generator import generate_pdf, generate_pdf_bytes, generate_pdf_to_path
+import config
+from tkinter import filedialog, ttk
+from service.pdf_generator import generate_pdf, generate_pdf_to_path
 from utils import notifier
 from components.tooltip import Tooltip
-from utils.logger import log_info, log_warning, log_error
+from utils.logger import log_info, log_error
 
 
 class MainScene:
@@ -17,11 +17,9 @@ class MainScene:
         self.frame.pack(fill='both', expand=True)
 
     def build(self):
-        label = tk.Label(self.frame, text='Wybierz plik TXT i generuj PDF', font=('Arial', 12, 'bold'))
-        label.pack(pady=10)
-
         btn_file = tk.Button(self.frame, text='Wybierz plik TXT', command=self.select_file)
         btn_file.pack(pady=10)
+        Tooltip(btn_file, "Kliknij, aby wybrać plik i wygenerować PDF")
 
         separator = tk.Frame(self.frame, height=2, bd=1, relief='sunken')
         separator.pack(fill='x', padx=5, pady=15)
@@ -46,41 +44,52 @@ class MainScene:
     def generate_from_paths(self):
         try:
             log_info('Rozpoczynam przetwarzanie ścieżek z settings.json')
-            with open('settings.json', 'r') as f:
+
+            with open(config.SETTINGS_FILE, 'r') as f:
                 data = json.load(f)
                 mappings = data.get('mappings', [])
 
+            progress = ttk.Progressbar(self.frame, orient='horizontal', length=400, mode='determinate')
+            progress.pack(pady=10)
+
+            all_files = []
             pattern = re.compile(r'LKON_S\d+\.TXT', re.IGNORECASE)
 
-            for idx, entry in enumerate(mappings):
+            for entry in mappings:
                 input_dir = entry.get('input')
-                output_dir = entry.get('output')
-
-                log_info(f'[{idx + 1}] Przetwarzanie: input={input_dir}, output={output_dir}')
-
-                if not input_dir or not output_dir:
-                    log_warning(f'[{idx + 1}] Pominięto wpis bez input/output')
+                if not input_dir:
                     continue
-
                 for root, dirs, files in os.walk(input_dir):
                     if not (re.search(r'SEKCJA\.\d+', root) or os.path.basename(root).startswith('LOT_S_')):
                         continue
-
-                    relative_path = os.path.relpath(root, input_dir)
-                    target_dir = os.path.join(output_dir, relative_path)
-                    os.makedirs(target_dir, exist_ok=True)
-
                     for file in files:
                         if pattern.match(file):
-                            txt_path = os.path.join(root, file)
-                            try:
-                                log_info(f'Generowanie PDF z pliku: {txt_path}')
-                                output_pdf_path = os.path.join(target_dir, os.path.splitext(file)[0] + '.pdf')
-                                generate_pdf_to_path(txt_path, output_pdf_path)
-                                log_info(f'Zapisano PDF do: {output_pdf_path}')
-                            except Exception as e:
-                                log_error(f'Błąd przy pliku {txt_path}: {e}')
-                                notifier.show_error(f'Błąd przy {txt_path}: {e}')
+                            all_files.append((root, file, entry['output'], input_dir))
+
+            progress['maximum'] = len(all_files)
+
+            for idx, (root, file, output_dir, input_dir) in enumerate(all_files, start=1):
+                relative_path = os.path.relpath(root, input_dir)
+                target_dir = os.path.join(output_dir, relative_path)
+                os.makedirs(target_dir, exist_ok=True)
+
+                txt_path = os.path.join(root, file)
+                output_pdf_path = os.path.join(target_dir, os.path.splitext(file)[0] + '.pdf')
+
+                try:
+                    log_info(f'Generowanie PDF z pliku: {txt_path}')
+                    generate_pdf_to_path(txt_path, output_pdf_path)
+                    log_info(f'Zapisano PDF do: {output_pdf_path}')
+                except Exception as e:
+                    log_error(f'Błąd przy pliku {txt_path}: {e}')
+                    notifier.show_error(f'Błąd przy {txt_path}: {e}')
+
+                progress['value'] = idx
+                self.frame.update_idletasks()
+
+            notifier.show_success('Wszystkie pliki zostały przetworzone.')
+            log_info('Zakończono przetwarzanie wszystkich plików.')
+
         except Exception as e:
             log_error(f'Błąd wczytywania ścieżek: {e}')
             notifier.show_error(f'Błąd wczytywania ścieżek: {e}')
