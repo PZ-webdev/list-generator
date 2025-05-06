@@ -1,5 +1,6 @@
 import tkinter as tk
 
+
 class AppMenu:
     def __init__(self, app):
         self.app = app

@@ -6,6 +6,7 @@ from config import SETTINGS_FILE
 from dto.settings_dto import SettingsDTO
 from utils import notifier
 
+
 class PathsScene:
     def __init__(self, app):
         self.app = app
@@ -16,7 +17,7 @@ class PathsScene:
         frame.pack(fill='both', expand=True, padx=10, pady=10)
 
         for i in range(5):
-            section = ttk.LabelFrame(frame, text=f'Opcja {i + 1}')
+            section = ttk.LabelFrame(frame, text=f'Oddział {i + 1}')
             section.pack(fill='x', pady=5)
 
             in_frame = ttk.Frame(section)

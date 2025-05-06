@@ -1,12 +1,10 @@
 import config
 import tkinter as tk
-from tkinter import filedialog, ttk
 from components.menu import AppMenu
 from scenes.main_scene import MainScene
 from scenes.paths_scene import PathsScene
 from utils import notifier
-import json
-import os
+
 
 class PdfApp:
     def __init__(self, root):
