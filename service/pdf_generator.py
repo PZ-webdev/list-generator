@@ -3,6 +3,8 @@ import re
 import os
 import shutil
 import platform
+
+from utils.logger import log_info, log_error
 from utils.resource_helper import resource_path
 
 
