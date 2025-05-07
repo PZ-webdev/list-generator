@@ -41,10 +41,17 @@ class MainScene:
             vcmd = (self.frame.register(validate_digit_input), '%P')
             lot_entry.config(validate='key', validatecommand=vcmd)
 
+            additional_list_var = tk.BooleanVar()
+            checkbox = tk.Checkbutton(row, variable=additional_list_var)
+            checkbox.pack(side='left', padx=5)
+            Tooltip(checkbox, "Wygeneruj listy zamknięte")
+
             generate_for_branch_button = tk.Button(
                 row,
                 text='GENERUJ',
-                command=lambda b=branch, le=lot_entry: self.generate_for_branch(b, le.get())
+                command=lambda b=branch, le=lot_entry, al=additional_list_var: self.generate_for_branch(
+                    b, le.get(), al.get()
+                )
             )
             generate_for_branch_button.pack(side='right', padx=5)
             Tooltip(generate_for_branch_button, "Wygeneruj listy PDF dla podanego lotu i wybranego oddziału")
@@ -69,7 +76,7 @@ class MainScene:
             with open(BRANCHES_FILE, 'r', encoding='utf-8') as f:
                 self.branches = json.load(f)
 
-    def generate_for_branch(self, branch, lot_number):
+    def generate_for_branch(self, branch, lot_number, additional_list):
         if not lot_number.strip().isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
             return
@@ -106,7 +113,6 @@ class MainScene:
 
         total_files = len(matching_files)
         if total_files == 0:
-            notifier.show_info(f'Brak plików LKON_S w {lot_path}')
             return
 
         self.progress['value'] = 0
@@ -124,7 +130,7 @@ class MainScene:
 
             try:
                 log_info(f'Generowanie PDF z pliku: {txt_path}')
-                generate_pdf_to_path(txt_path, output_pdf_path)
+                generate_pdf_to_path(txt_path, output_pdf_path, additional_list)
                 log_info(f'Zapisano PDF do: {output_pdf_path}')
             except Exception as e:
                 log_error(f'Błąd generowania PDF dla {txt_path}: {e}')
