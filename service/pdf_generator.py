@@ -67,7 +67,7 @@ def generate_single_pdf(file_path):
     return output_path
 
 
-def generate_pdf_to_path(file_path, output_pdf_path):
+def generate_pdf_to_path(file_path, output_pdf_path, additional_list):
     with open(file_path, 'r', encoding='cp852') as f:
         raw_content = f.read()
 
@@ -80,3 +80,21 @@ def generate_pdf_to_path(file_path, output_pdf_path):
 
     filled_html = html_template.replace('{{ content }}', html_ready)
     pdfkit.from_string(filled_html, output_pdf_path, configuration=config)
+
+    if additional_list:
+        html_ready_masked = mask_pigeon_rings(html_ready)
+
+        filled_html_masked = html_template.replace('{{ content }}', html_ready_masked)
+        closed_list_path = output_pdf_path.replace('.pdf', ' - LISTA ZAMKNIĘTA.pdf')
+
+        pdfkit.from_string(filled_html_masked, closed_list_path, configuration=config)
+
+
+def mask_pigeon_rings(text):
+    pattern = re.compile(r'\b[A-Z]{2,}[A-Z\d\-]{10,}\d\b')
+
+    def replacer(match):
+        s = match.group()
+        return s[:-5] + 'XXXXX'
+
+    return pattern.sub(replacer, text)
