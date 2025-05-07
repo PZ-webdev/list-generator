@@ -1,5 +1,6 @@
 import config
 import tkinter as tk
+import pathlib
 from components.menu import AppMenu
 from scenes.branches_scene import BranchesScene
 from scenes.main_scene import MainScene
@@ -41,4 +42,5 @@ class PdfApp:
         BranchesScene(self).build()
 
     def show_about(self):
-        notifier.show_success('Wersja 0.2.0', 'Informacja')
+        VERSION = (pathlib.Path(__file__).parent.parent / 'VERSION').read_text().strip()
+        notifier.show_success(f'Wersja programu: v{VERSION}', 'Informacja')
