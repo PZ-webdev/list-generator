@@ -1,10 +1,10 @@
 import config
 import tkinter as tk
 import pathlib
-from components.menu import AppMenu
-from scenes.branches_scene import BranchesScene
-from scenes.main_scene import MainScene
-from utils import notifier
+from app.gui.branches_scene import BranchesScene
+from app.gui.components.menu import AppMenu
+from app.gui.main_scene import MainScene
+from app.utils import notifier
 
 
 class PdfApp:
@@ -41,6 +41,7 @@ class PdfApp:
         self.clear_main_frame()
         BranchesScene(self).build()
 
-    def show_about(self):
-        VERSION = (pathlib.Path(__file__).parent.parent / 'VERSION').read_text().strip()
+    @staticmethod
+    def show_about():
+        VERSION = (pathlib.Path(__file__).resolve().parents[2] / 'VERSION').read_text().strip()
         notifier.show_success(f'Wersja programu: v{VERSION}', 'Informacja')

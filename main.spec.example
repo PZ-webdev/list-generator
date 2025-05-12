@@ -7,7 +7,9 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('templates/*.html', 'templates'),
+        ('data/*.json', 'data'),
+        ('app/templates/*.html', 'templates',
+        ('app/resources/*.ico', 'resources'),
         ('VERSION', '.'),
     ],
     hiddenimports=[],
@@ -32,7 +34,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon='icon.ico',
+    icon='resources/icon.ico',
 )
 
 coll = COLLECT(
