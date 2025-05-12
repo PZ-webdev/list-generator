@@ -6,7 +6,7 @@ from tkinter import ttk, filedialog
 
 import config
 from components.tooltip import Tooltip
-from service.pdf_generator import generate_pdf_to_path, generate_single_pdf
+from services.pdf_generator import generate_pdf_to_path, generate_single_pdf
 from utils import notifier
 from utils.logger import log_info, log_error, log_warning
 
