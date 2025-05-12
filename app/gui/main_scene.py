@@ -41,17 +41,22 @@ class MainScene:
             lot_entry.config(validate='key', validatecommand=vcmd)
 
             additional_list_var = tk.BooleanVar()
-            cb1 = tk.Checkbutton(row, variable=additional_list_var)
-            cb1.grid(row=0, column=3, padx=3, sticky='w')
-            Tooltip(cb1, "Wygeneruj listy zamknięte")
+            additional_list_checkbox = tk.Checkbutton(row, variable=additional_list_var)
+            additional_list_checkbox.grid(row=0, column=3, padx=3, sticky='w')
+            Tooltip(additional_list_checkbox, "Wygeneruj listy zamknięte")
+
+            rating_list_var = tk.BooleanVar()
+            rating_list_checkbox = tk.Checkbutton(row, variable=rating_list_var)
+            rating_list_checkbox.grid(row=0, column=4, padx=3, sticky='w')
+            Tooltip(rating_list_checkbox, "Dołącz listy klasyfikacji")
 
             generate_btn = tk.Button(
                 row,
                 text='GENERUJ',
-                command=lambda b=branch, le=lot_entry, al=additional_list_var:
-                self.generate_for_branch(b, le.get(), al.get())
+                command=lambda b=branch, le=lot_entry, al=additional_list_var, rl=rating_list_var:
+                self.generate_for_branch(b, le.get(), al.get(), rl.get())
             )
-            generate_btn.grid(row=0, column=4, padx=5, sticky='e')
+            generate_btn.grid(row=0, column=5, padx=5, sticky='e')
             Tooltip(generate_btn, "Wygeneruj listy PDF dla podanego lotu i wybranego oddziału")
 
         self.progress = ttk.Progressbar(self.frame, orient='horizontal', mode='determinate')
@@ -69,7 +74,7 @@ class MainScene:
         btn.pack(side='right', padx=10)
         Tooltip(btn, "Wybierz pojedynczy plik TXT i wygeneruj PDF")
 
-    def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool):
+    def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool):
         if not lot_number.strip().isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
             return
@@ -82,7 +87,7 @@ class MainScene:
 
         self.progress['value'] = 0
         self.progress.pack()
-        self.lot_pdf_service.generate_pdfs_for_lot(branch, lot_number, additional_list,
+        self.lot_pdf_service.generate_pdfs_for_lot(branch, lot_number, additional_list, rating_list,
                                                    progress_callback=update_progress)
         self.progress.pack_forget()
 

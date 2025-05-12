@@ -32,7 +32,7 @@ class LotPdfService:
                     matching_files.append((root, file))
         return matching_files
 
-    def generate_pdfs_for_lot(self, branch: Branch, lot_number: str, additional_list: bool, progress_callback=None):
+    def generate_pdfs_for_lot(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool, progress_callback=None):
         input_dir = branch.input
         output_dir = branch.output
         os.makedirs(output_dir, exist_ok=True)
@@ -59,7 +59,7 @@ class LotPdfService:
 
             try:
                 log_info(f'Generowanie PDF z pliku: {txt_path}')
-                self.pdf_generator.generate_pdf_to_path(txt_path, output_pdf_path, additional_list)
+                self.pdf_generator.generate_pdf_to_path(txt_path, output_pdf_path, additional_list, rating_list)
                 log_info(f'Zapisano PDF do: {output_pdf_path}')
             except Exception as e:
                 log_error(f'Błąd generowania PDF dla {txt_path}: {e}')

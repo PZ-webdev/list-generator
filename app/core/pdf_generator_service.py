@@ -4,6 +4,8 @@ import shutil
 import platform
 
 from app.core.text_processing_service import TextProcessingService
+from app.utils.file_utils import read_file_cp852
+from app.utils.logger import log_warning
 from app.utils.resource_helper import resource_path
 
 
@@ -25,8 +27,7 @@ class PdfGeneratorService:
         raise FileNotFoundError('Nie znaleziono wkhtmltopdf. Dodaj go do PATH lub podaj ręczną ścieżkę.')
 
     def generate_single_pdf(self, file_path: str) -> str:
-        with open(file_path, 'r', encoding='cp852') as f:
-            raw_content = f.read()
+        raw_content = read_file_cp852(file_path)
 
         html_ready = self.text_service.transform_control_codes(raw_content)
         html_ready = self.text_service.center_only_first_page(html_ready)
@@ -41,9 +42,13 @@ class PdfGeneratorService:
         pdfkit.from_string(html_content, output_path, configuration=self.config)
         return output_path
 
-    def generate_pdf_to_path(self, file_path: str, output_pdf_path: str, additional_list: bool):
-        with open(file_path, 'r', encoding='CP852') as f:
-            raw_content = f.read()
+    def generate_pdf_to_path(self, file_path: str, output_pdf_path: str, additional_list: bool, rating_list: bool):
+        raw_content = read_file_cp852(file_path)
+
+        if rating_list:
+            base_dir = os.path.dirname(file_path)
+            rating_files = ['PHD_1AS.TXT', 'PHDOD1A.TXT', 'PHD_1AS.TXT']
+            raw_content = self.text_service.append_rating_files_to_content(raw_content, base_dir, rating_files)
 
         html_ready = self.text_service.transform_control_codes(raw_content)
         html_ready = self.text_service.center_only_first_page(html_ready)

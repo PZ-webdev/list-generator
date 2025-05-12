@@ -1,4 +1,7 @@
 import re
+import os
+
+from app.utils.file_utils import read_file_cp852
 
 
 class TextProcessingService:
@@ -29,6 +32,14 @@ class TextProcessingService:
             return html
         centered = f'<div class="first-page-center"><div class="first-page-inner">{parts[0]}</div></div>'
         return centered + '<div class="page-break"></div>' + parts[1]
+
+    def append_rating_files_to_content(self, content: str, base_dir: str, filenames: list[str]) -> str:
+        for filename in filenames:
+            additional_path = os.path.join(base_dir, filename)
+            if os.path.exists(additional_path):
+                additional_content = read_file_cp852(additional_path)
+                content += '\n' + additional_content
+        return content
 
     def mask_pigeon_rings(self, text: str) -> str:
         pattern = re.compile(r'\b[A-Z]{2,}[A-Z\d\-]{10,}\d\b')
