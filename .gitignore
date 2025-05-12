@@ -8,4 +8,4 @@ build/
 *.spec
 *.exe
 logs/
-*.json
+data/*.json

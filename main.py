@@ -1,5 +1,6 @@
 import tkinter as tk
-from app.pdf_app import PdfApp
+
+from app.gui.pdf_app import PdfApp
 
 
 def main():
