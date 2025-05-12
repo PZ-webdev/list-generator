@@ -1,11 +1,14 @@
 import tkinter as tk
+import config
+
 from tkinter import filedialog
 from app.core.branch_service import BranchService
+from app.dto.branch import Branch
 from app.utils.notifier import show_error, show_success
 
 
 class BranchesScene:
-    def __init__(self, app, branches_file='data/branches.json'):
+    def __init__(self, app, branches_file=config.BRANCHES_FILE):
         self.app = app
         self.service = BranchService(branches_file)
 
@@ -63,7 +66,7 @@ class BranchesScene:
             frame = tk.Frame(self.list_frame, bd=1, relief='solid')
             frame.pack(fill='x', pady=2)
 
-            tk.Label(frame, text=branch['name'], anchor='w').pack(side='left', padx=5)
+            tk.Label(frame, text=branch.name, anchor='w').pack(side='left', padx=5)
             tk.Button(frame, text="Usuń", command=lambda b=branch: self.delete_branch(b)).pack(side='right', padx=2)
             tk.Button(frame, text="Edytuj", command=lambda b=branch: self.edit_branch(b)).pack(side='right', padx=2)
 
@@ -93,20 +96,20 @@ class BranchesScene:
         self.refresh_list()
         self.clear_form()
 
-    def delete_branch(self, branch):
-        self.service.delete_branch(branch['id'])
+    def delete_branch(self, branch: Branch):
+        self.service.delete_branch(branch.id)
         show_success('Usunięto oddział!')
         self.refresh_list()
 
-    def edit_branch(self, branch):
+    def edit_branch(self, branch: Branch):
         self.name_entry.delete(0, tk.END)
-        self.name_entry.insert(0, branch['name'])
+        self.name_entry.insert(0, branch.name)
         self.input_entry.delete(0, tk.END)
-        self.input_entry.insert(0, branch['input'])
+        self.input_entry.insert(0, branch.input)
         self.output_entry.delete(0, tk.END)
-        self.output_entry.insert(0, branch['output'])
+        self.output_entry.insert(0, branch.output)
 
-        self.service.delete_branch(branch['id'])
+        self.service.delete_branch(branch.id)
 
     def clear_form(self):
         self.name_entry.delete(0, tk.END)

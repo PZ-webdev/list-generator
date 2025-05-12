@@ -2,6 +2,7 @@ import os
 import re
 from typing import List, Tuple
 from app.core.pdf_generator_service import PdfGeneratorService
+from app.dto.branch import Branch
 from app.utils.logger import log_info, log_error, log_warning
 from app.utils import notifier
 
@@ -31,9 +32,9 @@ class LotPdfService:
                     matching_files.append((root, file))
         return matching_files
 
-    def generate_pdfs_for_lot(self, branch: dict, lot_number: str, additional_list: bool, progress_callback=None):
-        input_dir = branch['input']
-        output_dir = branch['output']
+    def generate_pdfs_for_lot(self, branch: Branch, lot_number: str, additional_list: bool, progress_callback=None):
+        input_dir = branch.input
+        output_dir = branch.output
         os.makedirs(output_dir, exist_ok=True)
 
         matched_folder = self.get_matching_lot_dir(input_dir, lot_number)
@@ -68,7 +69,7 @@ class LotPdfService:
             if progress_callback:
                 progress_callback(i, len(matching_files))
 
-        notifier.show_success(f"Poprawnie wygenerowano listy PDF\nLot numer: {lot_number}\nOddział: {branch['name']}")
+        notifier.show_success(f"Poprawnie wygenerowano listy PDF\nLot numer: {lot_number}\nOddział: {branch.name}")
 
     def _get_lot_pattern(self, lot_number: str):
         lot_str = f"{int(lot_number):02d}"

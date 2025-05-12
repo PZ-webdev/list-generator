@@ -2,6 +2,8 @@ import config
 import tkinter as tk
 
 from tkinter import filedialog, ttk
+
+from app.dto.branch import Branch
 from app.gui.components.tooltip import Tooltip
 from app.utils import notifier
 from app.utils.logger import log_info, log_error
@@ -28,7 +30,7 @@ class MainScene:
 
             row.columnconfigure(0, weight=1)
 
-            tk.Label(row, text=branch['name'], width=20, anchor='w').grid(row=0, column=0, padx=5, sticky='w')
+            tk.Label(row, text=branch.name, width=20, anchor='w').grid(row=0, column=0, padx=5, sticky='w')
             tk.Label(row, text='Lot nr:', anchor='w').grid(row=0, column=1, padx=5, sticky='e')
 
             lot_entry = tk.Entry(row, width=3)
@@ -67,7 +69,7 @@ class MainScene:
         btn.pack(side='right', padx=10)
         Tooltip(btn, "Wybierz pojedynczy plik TXT i wygeneruj PDF")
 
-    def generate_for_branch(self, branch, lot_number: str, additional_list: bool):
+    def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool):
         if not lot_number.strip().isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
             return
