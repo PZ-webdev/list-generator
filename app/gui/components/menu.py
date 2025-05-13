@@ -12,6 +12,7 @@ class AppMenu:
 
         menu_section = tk.Menu(menubar, tearoff=0)
         menu_section.add_command(label='Start', command=self.app.show_main_scene)
+        menu_section.add_command(label='Ustawienia', command=self.app.show_settings_scene)
         menubar.add_cascade(label='Menu', menu=menu_section)
 
         branches_menu = tk.Menu(menubar, tearoff=0)

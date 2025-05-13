@@ -4,6 +4,7 @@ import pathlib
 from app.gui.branches_scene import BranchesScene
 from app.gui.components.menu import AppMenu
 from app.gui.main_scene import MainScene
+from app.gui.settings_scene import SettingsScene
 from app.utils import notifier
 
 
@@ -40,6 +41,10 @@ class PdfApp:
     def show_branches_scene(self):
         self.clear_main_frame()
         BranchesScene(self).build()
+
+    def show_settings_scene(self):
+        self.clear_main_frame()
+        SettingsScene(self).build()
 
     @staticmethod
     def show_about():

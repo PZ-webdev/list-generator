@@ -21,13 +21,13 @@ def read_file_utf8(path: str) -> str:
         return ''
 
 
-def read_json_utf8(path: str) -> str:
+def read_json_utf8(path: str) -> str | None:
     try:
         with open(path, 'r', encoding='UTF-8') as f:
             return json.load(f)
     except Exception as e:
         log_error(f'Błąd podczas odczytu pliku {path}: {e}')
-        return ''
+        return None
 
 
 def write_json_utf8(data: list, file_path: str):
