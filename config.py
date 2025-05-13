@@ -3,7 +3,7 @@ from pathlib import Path
 
 WINDOW_TITLE = "Generator list PDF"
 WINDOW_WIDTH = 600
-WINDOW_HEIGHT = 600
+WINDOW_HEIGHT = 700
 WINDOW_RESIZABLE = False
 
 # Directory settings

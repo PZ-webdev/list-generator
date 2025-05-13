@@ -1,7 +1,7 @@
 import os
 import re
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from app.core.pdf_generator_service import PdfGeneratorService
 from app.dto.branch import Branch
 from app.utils.logger import log_info, log_error, log_warning
@@ -12,7 +12,7 @@ class LotPdfService:
     def __init__(self, pdf_generator: PdfGeneratorService):
         self.pdf_generator = pdf_generator
 
-    def get_matching_lot_dir(self, input_dir: str, lot_number: str) -> str | None:
+    def get_matching_lot_dir(self, input_dir: str, lot_number: Optional[str]) -> str:
         pattern = self._get_lot_pattern(lot_number)
         log_info(f'Używam wzorca regex: {pattern.pattern}')
 
