@@ -10,6 +10,7 @@ WINDOW_RESIZABLE = False
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / 'data'
 BRANCHES_FILE = DATA_DIR / 'branches.json'
+SETTINGS_FILE = DATA_DIR / 'settings.json'
 
 # Logging
 LOG_LEVEL = 'INFO'

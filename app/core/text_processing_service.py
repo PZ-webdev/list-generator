@@ -1,7 +1,9 @@
 import re
 import os
 
+from app.dto.settings_dto import SettingsDTO
 from app.utils.file_utils import read_file_cp852
+from app.utils.logger import log_info
 
 
 class TextProcessingService:
@@ -37,15 +39,25 @@ class TextProcessingService:
         for filename in filenames:
             additional_path = os.path.join(base_dir, filename)
             if os.path.exists(additional_path):
+                log_info(f'Dołączam plik {additional_path} do pliku')
                 additional_content = read_file_cp852(additional_path)
                 content += '\n' + additional_content
         return content
 
     def mask_pigeon_rings(self, text: str) -> str:
+        mask = 'XXXXX'
+
+        try:
+            settings = SettingsDTO.from_json()
+            if settings.ring_mask.strip():
+                mask = settings.ring_mask.strip()
+        except Exception:
+            pass
+
         pattern = re.compile(r'\b[A-Z]{2,}[A-Z\d\-]{10,}\d\b')
 
         def replacer(match):
             s = match.group()
-            return s[:-5] + 'XXXXX'
+            return s[:-len(mask)] + mask
 
         return pattern.sub(replacer, text)

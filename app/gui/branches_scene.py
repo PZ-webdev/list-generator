@@ -5,6 +5,7 @@ from tkinter import filedialog
 from app.core.branch_service import BranchService
 from app.dto.branch import Branch
 from app.utils.notifier import show_error, show_success
+from app.utils.validator import validate_number
 
 
 class BranchesScene:
@@ -34,17 +35,22 @@ class BranchesScene:
         self.name_entry = tk.Entry(self.form_frame, width=40)
         self.name_entry.grid(row=0, column=1)
 
-        tk.Label(self.form_frame, text="Katalog roboczy:").grid(row=1, column=0)
+        tk.Label(self.form_frame, text="Numer oddziału:").grid(row=1, column=0)
+        vcmd = (self.form_frame.register(validate_number(999)), '%P')
+        self.number_entry = tk.Entry(self.form_frame, width=40, validate='key', validatecommand=vcmd)
+        self.number_entry.grid(row=1, column=1)
+
+        tk.Label(self.form_frame, text="Katalog roboczy:").grid(row=2, column=0)
         self.input_entry = tk.Entry(self.form_frame, width=40)
-        self.input_entry.grid(row=1, column=1)
-        tk.Button(self.form_frame, text="Wybierz", command=self.select_input).grid(row=1, column=2)
+        self.input_entry.grid(row=2, column=1)
+        tk.Button(self.form_frame, text="Wybierz", command=self.select_input).grid(row=2, column=2)
 
-        tk.Label(self.form_frame, text="Katalog docelowy:").grid(row=2, column=0)
+        tk.Label(self.form_frame, text="Katalog docelowy:").grid(row=3, column=0)
         self.output_entry = tk.Entry(self.form_frame, width=40)
-        self.output_entry.grid(row=2, column=1)
-        tk.Button(self.form_frame, text="Wybierz", command=self.select_output).grid(row=2, column=2)
+        self.output_entry.grid(row=3, column=1)
+        tk.Button(self.form_frame, text="Wybierz", command=self.select_output).grid(row=3, column=2)
 
-        tk.Button(self.form_frame, text="Dodaj", command=self.add_branch).grid(row=3, column=0, columnspan=3, pady=10)
+        tk.Button(self.form_frame, text="Zapisz", command=self.add_branch).grid(row=4, column=0, columnspan=3, pady=10)
 
         separator = tk.Frame(self.frame, height=2, bd=1, relief='sunken')
         separator.pack(fill='x', padx=5, pady=10)
@@ -66,7 +72,8 @@ class BranchesScene:
             frame = tk.Frame(self.list_frame, bd=1, relief='solid')
             frame.pack(fill='x', pady=2)
 
-            tk.Label(frame, text=branch.name, anchor='w').pack(side='left', padx=5)
+            label = f'{branch.number} {branch.name}'
+            tk.Label(frame, text=label, anchor='w').pack(side='left', padx=5)
             tk.Button(frame, text="Usuń", command=lambda b=branch: self.delete_branch(b)).pack(side='right', padx=2)
             tk.Button(frame, text="Edytuj", command=lambda b=branch: self.edit_branch(b)).pack(side='right', padx=2)
 
@@ -86,12 +93,13 @@ class BranchesScene:
         name = self.name_entry.get().strip()
         input_path = self.input_entry.get().strip()
         output_path = self.output_entry.get().strip()
+        number = self.number_entry.get().strip()
 
-        if not name or not input_path or not output_path:
+        if not name or not number or not input_path or not output_path:
             show_error('Wypełnij wszystkie pola!')
             return
 
-        self.service.add_branch(name, input_path, output_path)
+        self.service.add_branch(name, number, input_path, output_path)
         show_success('Dodano oddział!')
         self.refresh_list()
         self.clear_form()
@@ -108,6 +116,8 @@ class BranchesScene:
         self.input_entry.insert(0, branch.input)
         self.output_entry.delete(0, tk.END)
         self.output_entry.insert(0, branch.output)
+        self.number_entry.delete(0, tk.END)
+        self.number_entry.insert(0, branch.number)
 
         self.service.delete_branch(branch.id)
 
@@ -115,3 +125,4 @@ class BranchesScene:
         self.name_entry.delete(0, tk.END)
         self.input_entry.delete(0, tk.END)
         self.output_entry.delete(0, tk.END)
+        self.number_entry.delete(0, tk.END)

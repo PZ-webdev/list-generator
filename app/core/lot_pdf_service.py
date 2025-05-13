@@ -1,5 +1,6 @@
 import os
 import re
+
 from typing import List, Tuple
 from app.core.pdf_generator_service import PdfGeneratorService
 from app.dto.branch import Branch
@@ -32,10 +33,11 @@ class LotPdfService:
                     matching_files.append((root, file))
         return matching_files
 
-    def generate_pdfs_for_lot(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool, progress_callback=None):
+    def generate_pdfs_for_lot(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool,
+                              progress_callback=None):
         input_dir = branch.input
-        output_dir = branch.output
-        os.makedirs(output_dir, exist_ok=True)
+        base_output_dir = branch.output
+        os.makedirs(base_output_dir, exist_ok=True)
 
         matched_folder = self.get_matching_lot_dir(input_dir, lot_number)
         if not matched_folder:
@@ -50,17 +52,30 @@ class LotPdfService:
             return
 
         for i, (root, file) in enumerate(matching_files, 1):
-            relative_path = os.path.relpath(root, input_dir)
-            target_folder = os.path.join(output_dir, relative_path)
-            os.makedirs(target_folder, exist_ok=True)
-
             txt_path = os.path.join(root, file)
-            output_pdf_path = os.path.join(target_folder, os.path.splitext(file)[0] + '.pdf')
 
             try:
                 log_info(f'Generowanie PDF z pliku: {txt_path}')
-                self.pdf_generator.generate_pdf_to_path(txt_path, output_pdf_path, additional_list, rating_list)
-                log_info(f'Zapisano PDF do: {output_pdf_path}')
+
+                relative_path = os.path.relpath(txt_path, branch.input)
+                parts = relative_path.split(os.sep)
+                lot_folder_name = next((p for p in parts if p.startswith("LOT_S_")), None)
+
+                if not lot_folder_name:
+                    raise ValueError(f"Nie znaleziono katalogu lotu w ścieżce: {txt_path}")
+
+                output_dir = os.path.join(base_output_dir, lot_folder_name)
+                os.makedirs(output_dir, exist_ok=True)
+
+                self.pdf_generator.generate_pdf_to_path(
+                    branch,
+                    txt_path,
+                    output_dir,
+                    additional_list,
+                    rating_list
+                )
+
+                log_info(f'Zapisano PDF do: {output_dir}')
             except Exception as e:
                 log_error(f'Błąd generowania PDF dla {txt_path}: {e}')
                 notifier.show_error(f'Błąd generowania PDF dla {txt_path}')
