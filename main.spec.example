@@ -8,7 +8,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('data/*.json', 'data'),
-        ('app/templates/*.html', 'templates',
+        ('app/templates/*.html', 'templates'),
         ('app/resources/*.ico', 'resources'),
         ('VERSION', '.'),
     ],
@@ -34,7 +34,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon='resources/icon.ico',
+    icon='app/resources/icon.ico',
 )
 
 coll = COLLECT(

@@ -9,3 +9,4 @@ build/
 *.exe
 logs/
 data/*.json
+!data/example.json
