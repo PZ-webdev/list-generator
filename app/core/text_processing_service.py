@@ -13,12 +13,14 @@ class TextProcessingService:
         text = re.sub(r'\x1b36', '', text)
 
         text = text.replace('\x1b', '[ESC]')
-        text = text.replace('[ESC]2', '')
+        text = text.replace('[ESC]2', '\n\n')
         text = text.replace('<', '&lt;').replace('>', '&gt;')
+        text = text.replace('└───────────────┴───┴─────┴─────┴─────┘', '└───────────────┴───┴─────┴─────┴─────┘\n\n\n')
 
         text = re.sub(r'\[ESC\]G\[ESC\]W1(.*?)(\[ESC\]H)?\[ESC\]W0', lambda m: f'<h1>{m.group(1).strip()}</h1>', text, flags=re.S)
         text = re.sub(r'\[ESC\]G\[ESC\]W1(.*?)\[ESC\]W0', lambda m: f'<h2>{m.group(1).strip()}</h2>', text, flags=re.S)
         text = re.sub(r'\[ESC\]36(.*?)\[ESC\]H', lambda m: f'<h3>{m.group(1).strip()}</h3>', text, flags=re.S)
+        text = re.sub(r'\[ESC\]H', '', text)
 
         text = text.replace('\f', '<div class="page-break"></div>')
         text = text.replace('[ESC]', '')
