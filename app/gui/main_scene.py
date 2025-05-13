@@ -10,6 +10,7 @@ from app.utils.logger import log_info, log_error
 from app.core.branch_service import BranchService
 from app.core.lot_pdf_service import LotPdfService
 from app.core.pdf_generator_service import PdfGeneratorService
+from app.utils.validator import validate_number
 
 
 class MainScene:
@@ -30,14 +31,15 @@ class MainScene:
 
             row.columnconfigure(0, weight=1)
 
-            tk.Label(row, text=branch.name, width=20, anchor='w').grid(row=0, column=0, padx=5, sticky='w')
+            label = f'{branch.number} {branch.name}'
+            tk.Label(row, text=label, width=20, anchor='w').grid(row=0, column=0, padx=5, sticky='w')
             tk.Label(row, text='Lot nr:', anchor='w').grid(row=0, column=1, padx=5, sticky='e')
 
-            lot_entry = tk.Entry(row, width=3)
+            lot_entry = tk.Entry(row, width=4)
             lot_entry.grid(row=0, column=2, padx=5, sticky='w')
             Tooltip(lot_entry, "Podaj numer lotu")
 
-            vcmd = (self.frame.register(lambda nv: nv.isdigit() or nv == ''), '%P')
+            vcmd = (self.frame.register(validate_number(99)), '%P')
             lot_entry.config(validate='key', validatecommand=vcmd)
 
             additional_list_var = tk.BooleanVar()
