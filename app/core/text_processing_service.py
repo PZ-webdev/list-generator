@@ -2,6 +2,7 @@ import re
 import os
 
 from app.utils.file_utils import read_file_cp852
+from app.utils.logger import log_info
 
 
 class TextProcessingService:
@@ -37,6 +38,7 @@ class TextProcessingService:
         for filename in filenames:
             additional_path = os.path.join(base_dir, filename)
             if os.path.exists(additional_path):
+                log_info(f'Dołączam plik {additional_path} do pliku')
                 additional_content = read_file_cp852(additional_path)
                 content += '\n' + additional_content
         return content
