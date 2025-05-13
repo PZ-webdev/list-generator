@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import Tuple
 
 import pdfkit
 import shutil
@@ -96,7 +97,7 @@ class PdfGeneratorService:
             filled_html_masked = html_template.replace('{{ content }}', html_ready_masked)
             pdfkit.from_string(filled_html_masked, closed_list_path, configuration=self.config)
 
-    def get_output_filenames(self, branch: Branch, file_path: str, output_dir: str) -> tuple[str, str]:
+    def get_output_filenames(self, branch: Branch, file_path: str, output_dir: str) -> Tuple[str, str]:
         settings = SettingsDTO.from_json()
         date_str = datetime.today().strftime('%Y%m%d')
 
