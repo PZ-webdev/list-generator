@@ -10,7 +10,8 @@ Aplikacja desktopowa w Pythonie do generowania plików PDF z plików tekstowych.
    pip install -r requirements.txt
 ```
 
-2. Upewnij się, że masz zainstalowany wkhtmltopdf.
+2. Upewnij się, że masz zainstalowany wkhtmltopdf. -> https://wkhtmltopdf.org/downloads.html
+
 
 3. Uruchom:
 

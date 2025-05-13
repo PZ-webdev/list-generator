@@ -1,4 +1,5 @@
 import json
+from typing import Optional, Any
 
 from app.utils.logger import log_error
 
@@ -21,7 +22,7 @@ def read_file_utf8(path: str) -> str:
         return ''
 
 
-def read_json_utf8(path: str) -> str | None:
+def read_json_utf8(path: str) -> Optional[Any]:
     try:
         with open(path, 'r', encoding='UTF-8') as f:
             return json.load(f)
