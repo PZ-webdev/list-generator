@@ -1,6 +1,9 @@
+import os
+import json
 import tkinter as tk
 from tkinter import ttk, filedialog
 
+import config
 from app.dto.settings_dto import SettingsDTO
 from app.utils.logger import log_warning
 from app.utils.notifier import show_success, show_error
@@ -25,6 +28,8 @@ class SettingsScene:
         self.app = app
         self.frame = ttk.Frame(self.app.main_frame)
 
+        self.is_old_var = tk.BooleanVar(value=False)
+
     def build(self):
         self.frame.pack(fill='both', expand=True)
         tabs = ttk.Notebook(self.frame)
@@ -42,8 +47,22 @@ class SettingsScene:
         lists_tab = ttk.Frame(tabs)
         tabs.add(lists_tab, text="Ogólne")
 
+        global_frame = ttk.LabelFrame(lists_tab, text="Ustawienia globalne (sezon)")
+        global_frame.grid(row=0, column=0, padx=20, pady=(10, 0), sticky='nsew')
+
+        chk = ttk.Checkbutton(
+            global_frame,
+            text="Generuj dla gołębi STARYCH (odznaczone = MŁODE)",
+            variable=self.is_old_var,
+            command=lambda: self.status_label.config(text=self._status_text())
+        )
+        chk.grid(row=0, column=0, sticky='w', padx=8, pady=8)
+
+        self.status_label = ttk.Label(global_frame, text=self._status_text())
+        self.status_label.grid(row=0, column=1, sticky='w', padx=8, pady=8)
+
         frame_templates = ttk.LabelFrame(lists_tab, text="Nazwy plików PDF")
-        frame_templates.grid(row=0, column=0, padx=20, pady=10, sticky='nsew')
+        frame_templates.grid(row=1, column=0, padx=20, pady=10, sticky='nsew')
 
         self.template_vars = {}
         for i, (label, key) in enumerate(labels):
@@ -54,7 +73,7 @@ class SettingsScene:
             ttk.Entry(frame_templates, textvariable=var, width=50).grid(row=i, column=1, padx=5, pady=3)
 
         frame_files = ttk.LabelFrame(lists_tab, text="Kolejność doklejanych plików")
-        frame_files.grid(row=1, column=0, padx=20, pady=10, sticky='nsew')
+        frame_files.grid(row=2, column=0, padx=20, pady=10, sticky='nsew')
 
         self.file_order = ['PHD_1AS.TXT', 'PHDOD1A.TXT']
         self.file_listbox = tk.Listbox(frame_files, height=4, width=40)
@@ -65,16 +84,15 @@ class SettingsScene:
         tk.Button(frame_files, text="Dół", command=self.move_down).grid(row=1, column=1, sticky='w', padx=5, pady=5)
 
         frame_mask = ttk.LabelFrame(lists_tab, text="Maskowanie nazw obrączek")
-        frame_mask.grid(row=2, column=0, padx=20, pady=10, sticky='nsew')
+        frame_mask.grid(row=3, column=0, padx=20, pady=10, sticky='nsew')
 
         self.ring_mask_var = tk.StringVar(value="#####")
         ttk.Entry(frame_mask, textvariable=self.ring_mask_var, width=40).grid(row=0, column=0, padx=5, pady=5)
 
         frame_output_dir = ttk.LabelFrame(lists_tab, text="Domyślny katalog dla pojedynczego PDF")
-        frame_output_dir.grid(row=3, column=0, padx=20, pady=10, sticky='nsew')
+        frame_output_dir.grid(row=4, column=0, padx=20, pady=10, sticky='nsew')
 
         self.default_pdf_dir = tk.StringVar(value="")
-
         entry = ttk.Entry(frame_output_dir, textvariable=self.default_pdf_dir, width=50, state='readonly')
         entry.grid(row=0, column=0, padx=5, pady=5)
 
@@ -83,28 +101,45 @@ class SettingsScene:
             if selected_dir:
                 self.default_pdf_dir.set(selected_dir)
 
-        tk.Button(frame_output_dir, text="Wybierz katalog", command=choose_directory).grid(row=0, column=1, padx=5,
-                                                                                           pady=5)
+        tk.Button(frame_output_dir, text="Wybierz katalog", command=choose_directory).grid(
+            row=0, column=1, padx=5, pady=5
+        )
 
     def load_settings(self):
         try:
             settings = SettingsDTO.from_json()
+
+            is_old = False
+            try:
+                is_old = bool(getattr(settings, "is_old_pigeon", False))
+            except Exception:
+                is_old = False
+            try:
+                with open(config.SETTINGS_FILE, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                if isinstance(raw, dict) and "isOldPigeon" in raw:
+                    is_old = bool(raw.get("isOldPigeon", is_old))
+            except Exception:
+                pass
+
+            self.is_old_var.set(is_old)
+            if hasattr(self, "status_label"):
+                self.status_label.config(text=self._status_text())
 
             for key in self.template_vars:
                 value = getattr(settings, key, "").strip()
                 if value:
                     self.template_vars[key].set(value)
                 else:
-                    self.template_vars[key].set(self.default_templates.get(key, ""))
+                    self.template_vars[key].set(default_templates.get(key, ""))
 
-            self.file_order = settings.attached_files
+            self.file_order = getattr(settings, "attached_files", self.file_order)
             self.refresh_file_listbox()
 
-            self.ring_mask_var.set(settings.ring_mask)
+            self.ring_mask_var.set(getattr(settings, "ring_mask", self.ring_mask_var.get()))
+            self.default_pdf_dir.set(getattr(settings, "default_pdf_dir", self.default_pdf_dir.get()))
 
-            self.default_pdf_dir.set(settings.default_pdf_dir)
-
-        except Exception as e:
+        except Exception:
             log_warning("Nie udało się załadować ustawień, lub nie znaleziono pliku")
 
     def move_up(self):
@@ -139,5 +174,35 @@ class SettingsScene:
             default_pdf_dir=self.default_pdf_dir.get()
         )
 
+        try:
+            setattr(settings, "is_old_pigeon", bool(self.is_old_var.get()))
+        except Exception:
+            pass
+
         settings.to_json()
+
+        try:
+            path = config.SETTINGS_FILE
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if not isinstance(data, dict):
+                    data = {}
+            except Exception:
+                data = {}
+
+            data["isOldPigeon"] = bool(self.is_old_var.get())
+
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = f"{path}.tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp, path)
+        except Exception as e:
+            show_error(f"Nie udało się zapisać ustawienia sezonu: {e}")
+            return
+
         show_success('Zapisano ustawienia!')
+
+    def _status_text(self) -> str:
+        return f"Aktualny typ: {'STARE' if self.is_old_var.get() else 'MŁODE'}"
