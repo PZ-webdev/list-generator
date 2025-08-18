@@ -1,6 +1,7 @@
+import json
+import os
 import tkinter as tk
 import config
-
 from tkinter import filedialog
 from app.core.branch_service import BranchService
 from app.dto.branch import Branch
@@ -22,6 +23,9 @@ class BranchesScene:
         self.name_entry = None
         self.input_entry = None
         self.output_entry = None
+        self.number_entry = None
+
+        self.is_old_mode = self._load_is_old()
 
     def build(self):
         self.build_form()
@@ -31,26 +35,34 @@ class BranchesScene:
         self.form_frame = tk.Frame(self.frame)
         self.form_frame.pack(pady=10)
 
-        tk.Label(self.form_frame, text="Nazwa:").grid(row=0, column=0)
-        self.name_entry = tk.Entry(self.form_frame, width=40)
-        self.name_entry.grid(row=0, column=1)
+        banner = tk.Label(
+            self.form_frame,
+            text=f"Tryb: {'STARE' if self.is_old_mode else 'MŁODE'} — nowe oddziały będą zapisane z tym atrybutem",
+            fg="#333",
+            font=("Arial", 9, "italic")
+        )
+        banner.grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 8))
 
-        tk.Label(self.form_frame, text="Numer oddziału:").grid(row=1, column=0)
+        tk.Label(self.form_frame, text="Nazwa:").grid(row=1, column=0, sticky="e")
+        self.name_entry = tk.Entry(self.form_frame, width=40)
+        self.name_entry.grid(row=1, column=1, sticky="w")
+
+        tk.Label(self.form_frame, text="Numer oddziału:").grid(row=2, column=0, sticky="e")
         vcmd = (self.form_frame.register(validate_number(999)), '%P')
         self.number_entry = tk.Entry(self.form_frame, width=40, validate='key', validatecommand=vcmd)
-        self.number_entry.grid(row=1, column=1)
+        self.number_entry.grid(row=2, column=1, sticky="w")
 
-        tk.Label(self.form_frame, text="Katalog roboczy:").grid(row=2, column=0)
+        tk.Label(self.form_frame, text="Katalog roboczy:").grid(row=3, column=0, sticky="e")
         self.input_entry = tk.Entry(self.form_frame, width=40)
-        self.input_entry.grid(row=2, column=1)
-        tk.Button(self.form_frame, text="Wybierz", command=self.select_input).grid(row=2, column=2)
+        self.input_entry.grid(row=3, column=1, sticky="w")
+        tk.Button(self.form_frame, text="Wybierz", command=self.select_input).grid(row=3, column=2, padx=(6, 0))
 
-        tk.Label(self.form_frame, text="Katalog docelowy:").grid(row=3, column=0)
+        tk.Label(self.form_frame, text="Katalog docelowy:").grid(row=4, column=0, sticky="e")
         self.output_entry = tk.Entry(self.form_frame, width=40)
-        self.output_entry.grid(row=3, column=1)
-        tk.Button(self.form_frame, text="Wybierz", command=self.select_output).grid(row=3, column=2)
+        self.output_entry.grid(row=4, column=1, sticky="w")
+        tk.Button(self.form_frame, text="Wybierz", command=self.select_output).grid(row=4, column=2, padx=(6, 0))
 
-        tk.Button(self.form_frame, text="Zapisz", command=self.add_branch).grid(row=4, column=0, columnspan=3, pady=10)
+        tk.Button(self.form_frame, text="Zapisz", command=self.add_branch).grid(row=5, column=0, columnspan=3, pady=10)
 
         separator = tk.Frame(self.frame, height=2, bd=1, relief='sunken')
         separator.pack(fill='x', padx=5, pady=10)
@@ -60,7 +72,7 @@ class BranchesScene:
             self.list_frame.destroy()
 
         self.list_frame = tk.Frame(self.frame)
-        self.list_frame.pack(pady=5)
+        self.list_frame.pack(pady=5, fill='both', expand=True)
 
         self.refresh_list()
 
@@ -68,9 +80,18 @@ class BranchesScene:
         for widget in self.list_frame.winfo_children():
             widget.destroy()
 
-        for branch in self.service.get_all():
+        filtered = self.service.get_by_season(self.is_old_mode)
+
+        header = tk.Label(
+            self.list_frame,
+            text=f"Oddziały – {'STARE' if self.is_old_mode else 'MŁODE'}",
+            font=("Arial", 10, "bold")
+        )
+        header.pack(pady=(0, 6))
+
+        for branch in filtered:
             frame = tk.Frame(self.list_frame, bd=1, relief='solid')
-            frame.pack(fill='x', pady=2)
+            frame.pack(fill='x', pady=2, padx=160)
 
             label = f'{branch.number} {branch.name}'
             tk.Label(frame, text=label, anchor='w').pack(side='left', padx=5)
@@ -99,7 +120,14 @@ class BranchesScene:
             show_error('Wypełnij wszystkie pola!')
             return
 
-        self.service.add_branch(name, number, input_path, output_path)
+        self.service.add_branch(
+            name=name,
+            number=number,
+            input_path=input_path,
+            output_path=output_path,
+            is_old_pigeon=self.is_old_mode,
+        )
+
         show_success('Dodano oddział!')
         self.refresh_list()
         self.clear_form()
@@ -126,3 +154,13 @@ class BranchesScene:
         self.input_entry.delete(0, tk.END)
         self.output_entry.delete(0, tk.END)
         self.number_entry.delete(0, tk.END)
+
+    def _load_is_old(self) -> bool:
+        try:
+            if not os.path.exists(config.SETTINGS_FILE):
+                return False
+            with open(config.SETTINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return bool(data.get("is_old_pigeon", False))
+        except Exception:
+            return False

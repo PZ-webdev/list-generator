@@ -62,7 +62,7 @@ class MainScene:
         rows_container = tk.Frame(lists_tab)
         rows_container.pack(fill='both', expand=True)
 
-        for branch in self.branch_service.get_all():
+        for branch in self.branch_service.get_by_season(self.is_old_pigeon):
             row = ttk.Frame(rows_container, padding=(5, 3))
             row.pack(fill='x')
 
@@ -158,13 +158,13 @@ class MainScene:
                 notifier.show_error(str(e))
 
     def _load_is_old(self) -> bool:
-        """Wczytaj isOldPigeon z settings.json (domyślnie False = MŁODE)."""
+        """Wczytaj is_old_pigeon z settings.json (domyślnie False = MŁODE)."""
         try:
             if not os.path.exists(config.SETTINGS_FILE):
                 return False
             with open(config.SETTINGS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            return bool(data.get('isOldPigeon', False))
+            return bool(data.get('is_old_pigeon', False))
         except Exception:
             return False
 
