@@ -62,7 +62,7 @@ class MainScene:
         rows_container = tk.Frame(lists_tab)
         rows_container.pack(fill='both', expand=True)
 
-        for branch in self.branch_service.get_by_season(self.is_old_pigeon):
+        for branch in self.branch_service.get_all():
             row = ttk.Frame(rows_container, padding=(5, 3))
             row.pack(fill='x')
 

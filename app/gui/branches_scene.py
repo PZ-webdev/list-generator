@@ -95,7 +95,7 @@ class BranchesScene:
         for w in self.rows_container.winfo_children():
             w.destroy()
 
-        filtered = self.service.get_by_season(self.is_old_mode)
+        filtered = self.service.get_all()
 
         for i, b in enumerate(filtered):
             row = ttk.Frame(self.rows_container, padding=(5, 3))
@@ -147,8 +147,7 @@ class BranchesScene:
             name=name,
             number=number,
             input_path=input_path,
-            output_path=output_path,
-            is_old_pigeon=self.is_old_mode,
+            output_path=output_path
         )
         show_success('Dodano oddział!')
         self.refresh_list()
@@ -175,7 +174,6 @@ class BranchesScene:
         for e in (self.name_entry, self.input_entry, self.output_entry, self.number_entry):
             e.delete(0, tk.END)
 
-    # --------------- helpers ---------------
     def _load_is_old(self) -> bool:
         """Czy globalnie wybrano STARE? (settings.json -> isOldPigeon)"""
         try:
