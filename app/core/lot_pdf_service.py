@@ -104,7 +104,7 @@ class LotPdfService:
                 progress_callback(i, total)
 
         notifier.show_success(
-            f"Wygenerowano listy \nLot numer: {lot_number}\nOddział: {branch.name}"
+            f"Wygenerowano listy \nLot nr.: {lot_number}\nOddział: {branch.name}"
         )
 
     def _get_lot_pattern(self, lot_number: Optional[str]) -> re.Pattern:
