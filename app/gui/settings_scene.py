@@ -163,7 +163,8 @@ class SettingsScene:
             filename_section_closed=self.template_vars['filename_section_closed'].get(),
             attached_files=self.file_order,
             ring_mask=self.ring_mask_var.get(),
-            default_pdf_dir=self.default_pdf_dir.get()
+            default_pdf_dir=self.default_pdf_dir.get(),
+            is_old_pigeon=self.is_old_var.get()
         )
 
         try:
