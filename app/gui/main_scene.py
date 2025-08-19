@@ -158,13 +158,13 @@ class MainScene:
                 notifier.show_error(str(e))
 
     def _load_is_old(self) -> bool:
-        """Wczytaj isOldPigeon z settings.json (domyślnie False = MŁODE)."""
+        """Wczytaj is_old_pigeon z settings.json (domyślnie False = MŁODE)."""
         try:
             if not os.path.exists(config.SETTINGS_FILE):
                 return False
             with open(config.SETTINGS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            return bool(data.get('isOldPigeon', False))
+            return bool(data.get('is_old_pigeon', False))
         except Exception:
             return False
 

@@ -106,41 +106,33 @@ class SettingsScene:
         )
 
     def load_settings(self):
+        data = {}
+
         try:
-            settings = SettingsDTO.from_json()
+            with open(config.SETTINGS_FILE, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+                if isinstance(raw, dict):
+                    data = raw
+        except FileNotFoundError:
+            data = {}
+        except Exception as e:
+            log_warning(f"Nie udało się odczytać settings.json: {e}")
+            data = {}
 
-            is_old = False
-            try:
-                is_old = bool(getattr(settings, "is_old_pigeon", False))
-            except Exception:
-                is_old = False
-            try:
-                with open(config.SETTINGS_FILE, "r", encoding="utf-8") as f:
-                    raw = json.load(f)
-                if isinstance(raw, dict) and "isOldPigeon" in raw:
-                    is_old = bool(raw.get("isOldPigeon", is_old))
-            except Exception:
-                pass
+        is_old = bool(data.get("is_old_pigeon", data.get("is_old_pigeon", False)))
+        self.is_old_var.set(is_old)
+        if hasattr(self, "status_label"):
+            self.status_label.config(text=self._status_text())
 
-            self.is_old_var.set(is_old)
-            if hasattr(self, "status_label"):
-                self.status_label.config(text=self._status_text())
+        for key in self.template_vars:
+            value = (data.get(key) or "").strip()
+            self.template_vars[key].set(value if value else default_templates.get(key, ""))
 
-            for key in self.template_vars:
-                value = getattr(settings, key, "").strip()
-                if value:
-                    self.template_vars[key].set(value)
-                else:
-                    self.template_vars[key].set(default_templates.get(key, ""))
+        self.file_order = data.get("attached_files", self.file_order)
+        self.refresh_file_listbox()
 
-            self.file_order = getattr(settings, "attached_files", self.file_order)
-            self.refresh_file_listbox()
-
-            self.ring_mask_var.set(getattr(settings, "ring_mask", self.ring_mask_var.get()))
-            self.default_pdf_dir.set(getattr(settings, "default_pdf_dir", self.default_pdf_dir.get()))
-
-        except Exception:
-            log_warning("Nie udało się załadować ustawień, lub nie znaleziono pliku")
+        self.ring_mask_var.set(data.get("ring_mask", self.ring_mask_var.get()))
+        self.default_pdf_dir.set(data.get("default_pdf_dir", self.default_pdf_dir.get()))
 
     def move_up(self):
         idx = self.file_listbox.curselection()
@@ -171,7 +163,8 @@ class SettingsScene:
             filename_section_closed=self.template_vars['filename_section_closed'].get(),
             attached_files=self.file_order,
             ring_mask=self.ring_mask_var.get(),
-            default_pdf_dir=self.default_pdf_dir.get()
+            default_pdf_dir=self.default_pdf_dir.get(),
+            is_old_pigeon=self.is_old_var.get()
         )
 
         try:
@@ -191,7 +184,7 @@ class SettingsScene:
             except Exception:
                 data = {}
 
-            data["isOldPigeon"] = bool(self.is_old_var.get())
+            data["is_old_pigeon"] = bool(self.is_old_var.get())
 
             os.makedirs(os.path.dirname(path), exist_ok=True)
             tmp = f"{path}.tmp"
