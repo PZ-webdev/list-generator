@@ -14,7 +14,6 @@ class SettingsDTO:
     attached_files: List[str]
     ring_mask: str
     default_pdf_dir: str
-    is_old_pigeon: bool
 
     def to_json(self):
         write_json_utf8(asdict(self), config.SETTINGS_FILE)

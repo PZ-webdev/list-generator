@@ -1,58 +1,40 @@
 import os
 import re
-from typing import List, Tuple, Optional
 
+from typing import List, Tuple, Optional
 from app.core.pdf_generator_service import PdfGeneratorService
 from app.dto.branch import Branch
 from app.utils.logger import log_info, log_error, log_warning
 from app.utils import notifier
-from app.utils.global_config import _read_is_old_global
 
 
 class LotPdfService:
     def __init__(self, pdf_generator: PdfGeneratorService):
         self.pdf_generator = pdf_generator
-        self.is_old = _read_is_old_global()
-        self.suffix = "S" if self.is_old else "M"
-        log_info(f"[LotPdfService] Ustawiono suffix: {self.suffix} (is_old_pigeon={self.is_old})")
 
-    def get_matching_lot_dir(self, input_dir: str, lot_number: Optional[str]) -> Optional[str]:
+    def get_matching_lot_dir(self, input_dir: str, lot_number: Optional[str]) -> str:
         pattern = self._get_lot_pattern(lot_number)
         log_info(f'Używam wzorca regex: {pattern.pattern}')
 
-        try:
-            folders = os.listdir(input_dir)
-        except FileNotFoundError:
-            log_warning(f'Katalog wejściowy nie istnieje: {input_dir}')
-            return None
-
-        for folder in folders:
+        for folder in os.listdir(input_dir):
             log_info(f'Sprawdzam folder: {folder}')
             if pattern.match(folder):
                 log_info(f'Znaleziono dopasowany folder: {folder}')
                 return folder
 
-        log_warning(f'Nie znaleziono katalogu lotu nr. {lot_number} w {input_dir}')
+        log_warning(f'Nie znaleziono katalogu LOT_S_{lot_number} w {input_dir}')
         return None
 
     def get_txt_files(self, directory: str) -> List[Tuple[str, str]]:
-        matching_files: List[Tuple[str, str]] = []
+        matching_files = []
         for root, _, files in os.walk(directory):
             for file in files:
-                upper = file.upper()
-                if upper.startswith(f'LKON_{self.suffix}') and upper.endswith('.TXT'):
+                if file.upper().startswith('LKON_S') and file.upper().endswith('.TXT'):
                     matching_files.append((root, file))
-        log_info(f'Znaleziono {len(matching_files)} plików TXT typu LKON_{self.suffix} w {directory}')
         return matching_files
 
-    def generate_pdfs_for_lot(
-            self,
-            branch: Branch,
-            lot_number: str,
-            additional_list: bool,
-            rating_list: bool,
-            progress_callback=None
-    ):
+    def generate_pdfs_for_lot(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool,
+                              progress_callback=None):
         input_dir = branch.input
         base_output_dir = branch.output
         os.makedirs(base_output_dir, exist_ok=True)
@@ -69,7 +51,6 @@ class LotPdfService:
             notifier.show_warning(f'Brak plików TXT do wygenerowania dla lotu {lot_number}')
             return
 
-        total = len(matching_files)
         for i, (root, file) in enumerate(matching_files, 1):
             txt_path = os.path.join(root, file)
 
@@ -78,7 +59,7 @@ class LotPdfService:
 
                 relative_path = os.path.relpath(txt_path, branch.input)
                 parts = relative_path.split(os.sep)
-                lot_folder_name = next((p for p in parts if p.startswith(f"LOT_{self.suffix}_")), None)
+                lot_folder_name = next((p for p in parts if p.startswith("LOT_S_")), None)
 
                 if not lot_folder_name:
                     raise ValueError(f"Nie znaleziono katalogu lotu w ścieżce: {txt_path}")
@@ -101,14 +82,10 @@ class LotPdfService:
                 return
 
             if progress_callback:
-                progress_callback(i, total)
+                progress_callback(i, len(matching_files))
 
-        notifier.show_success(
-            f"Wygenerowano listy \nLot numer: {lot_number}\nOddział: {branch.name}"
-        )
+        notifier.show_success(f"Poprawnie wygenerowano listy PDF\nLot numer: {lot_number}\nOddział: {branch.name}")
 
-    def _get_lot_pattern(self, lot_number: Optional[str]) -> re.Pattern:
-        if not lot_number or str(lot_number).strip() == "":
-            return re.compile(rf'^LOT_{self.suffix}_(\d{{2}})\.\d+$')
+    def _get_lot_pattern(self, lot_number: str):
         lot_str = f"{int(lot_number):02d}"
-        return re.compile(rf'^LOT_{self.suffix}_{lot_str}\.\d+$')
+        return re.compile(rf'^LOT_S_{lot_str}\.\d+$')
