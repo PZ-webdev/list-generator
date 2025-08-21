@@ -12,4 +12,11 @@ class AppMenu:
 
         menubar.add_command(label="Start", command=self.app.show_main_scene)
         menubar.add_command(label="Ustawienia", command=self.app.show_settings_scene)
-        menubar.add_command(label="Pomoc", command=self.app.show_about)
+
+        helpmenu = tk.Menu(menubar, tearoff=0)
+        helpmenu.add_command(label="O programie", command=self.app.show_about)
+        helpmenu.add_command(label="Dziennik zmian", command=self.app.show_changelog)
+        menubar.add_cascade(label="Pomoc", menu=helpmenu)
+
+        # (opcjonalnie) skrót klawiszowy F1 do "O programie…"
+        self.app.root.bind("<F1>", lambda e: self.app.show_about())

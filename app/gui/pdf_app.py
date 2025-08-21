@@ -3,6 +3,7 @@ import tkinter as tk
 import pathlib
 from app.gui.branches_scene import BranchesScene
 from app.gui.components.menu import AppMenu
+from app.gui.dialogs.about import show_about, show_changelog
 from app.gui.main_scene import MainScene
 from app.gui.settings_scene import SettingsScene
 from app.utils import notifier
@@ -46,7 +47,13 @@ class PdfApp:
         self.clear_main_frame()
         SettingsScene(self).build()
 
-    @staticmethod
-    def show_about():
-        VERSION = (pathlib.Path(__file__).resolve().parents[2] / 'VERSION').read_text().strip()
-        notifier.show_success(f'Wersja programu: v{VERSION}', 'Informacja')
+    # @staticmethod
+    # def show_about():
+    #     VERSION = (pathlib.Path(__file__).resolve().parents[2] / 'VERSION').read_text().strip()
+    #     notifier.show_success(f'Wersja programu: v{VERSION}', 'Informacja')
+
+    def show_about(self):
+        show_about(self.root)
+
+    def show_changelog(self):
+        show_changelog(self.root)
