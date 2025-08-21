@@ -1,5 +1,7 @@
 import os
-from typing import List
+from typing import List, Optional
+import config
+
 from app.dto.branch import Branch
 from app.utils.file_utils import read_json_utf8, write_json_utf8
 
@@ -12,18 +14,30 @@ class BranchService:
     def load_branches(self) -> List[Branch]:
         if os.path.exists(self.file_path):
             data = read_json_utf8(self.file_path)
-            return [Branch.from_dict(item) for item in data]
+            return [Branch.from_dict(item) for item in (data or [])]
         return []
 
     def save_branches(self):
         write_json_utf8([b.to_dict() for b in self.branches], self.file_path)
 
-    def get_all(self) -> List[Branch]:
+    def get_all(self) -> list[Branch]:
         return self.branches
 
-    def add_branch(self, name: str, number: str, input_path: str, output_path: str):
+    def add_branch(
+            self,
+            name: str,
+            number: str,
+            input_path: str,
+            output_path: str
+    ):
         next_id = str(max([int(b.id) for b in self.branches], default=0) + 1)
-        new_branch = Branch(id=next_id, name=name, number=number, input=input_path, output=output_path)
+        new_branch = Branch(
+            id=next_id,
+            name=name,
+            number=number,
+            input=input_path,
+            output=output_path
+        )
         self.branches.append(new_branch)
         self.save_branches()
 

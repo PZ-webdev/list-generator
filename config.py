@@ -15,3 +15,10 @@ SETTINGS_FILE = DATA_DIR / 'settings.json'
 # Logging
 LOG_LEVEL = 'INFO'
 LOG_BACKUP_COUNT = 30
+
+# About app
+APP_AUTHOR = "Patryk Zaprzała"
+APP_AUTHOR_EMAIL = "pzaprzala@gmail.com"
+
+# Files
+CHANGELOG_FILE = BASE_DIR / "CHANGELOG.md"

@@ -11,6 +11,7 @@ a = Analysis(
         ('app/templates/*.html', 'templates'),
         ('app/resources/*.ico', 'resources'),
         ('VERSION', '.'),
+        ('CHANGELOG.md', '.'),
     ],
     hiddenimports=[],
     hookspath=[],
