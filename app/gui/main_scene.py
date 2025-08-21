@@ -101,28 +101,27 @@ class MainScene:
         self.generate_for_branch(branch, lot_number, additional, rating)
 
     def _on_create_dir(self, branch: Branch, lot_number: str):
-        """
-        Tworzy katalog LOT_{S|M}_{NN}.001 w branch.input.
-        S/M – wg settings.json:is_old_pigeon (odczytywane na bieżąco).
-        """
-        is_old = self._load_is_old()
-        suffix = "S" if is_old else "M"
         try:
-            lot = int(lot_number)
-            lot_str = f"{lot:02d}"
-        except Exception:
-            notifier.show_warning("Nieprawidłowy numer lotu.")
-            return
+            lot_number = lot_number.strip()
+            if not lot_number:
+                notifier.show_warning("Podaj poprawny numer lotu!")
+                return
 
-        folder_name = f"LOT_{suffix}_{lot_str}.001"
-        target = os.path.join(branch.input, folder_name)
-        try:
-            os.makedirs(target, exist_ok=True)
-            log_info(f"Utworzono katalog lotu: {target}")
-            notifier.show_success(f"Utworzono katalog lotu:\n{target}")
+            base_path, final_path = self.lot_pdf_service.create_lot_dirs(
+                output_dir=branch.output,
+                is_old_pigeon=self.is_old_pigeon,
+                lot_number=lot_number,
+            )
+
+            log_info(f"Utworzono katalogi dla lotu nr.:{lot_number} w {final_path}")
+            notifier.show_success(f"Utworzono katalogi dla lotu nr.:\n{lot_number}")
+
+        except ValueError as ve:
+            notifier.show_warning(str(ve))
+            log_error(f"Błąd walidacji numeru lotu: {ve}")
         except Exception as e:
-            log_error(f"Nie udało się utworzyć katalogu {target}: {e}")
-            notifier.show_error("Błąd podczas tworzenia katalogu lotu.")
+            notifier.show_error("Nie udało się utworzyć katalogu lotu.")
+            log_error(f"Błąd tworzenia katalogów: {e}")
 
     def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool):
         if not lot_number.strip().isdigit():

@@ -102,7 +102,7 @@ class CollapsibleRow(ttk.Frame):
     def _on_click_create_dir(self):
         lot = self.lot_entry.get().strip()
         if not lot.isdigit():
-            notifier.show_warning('Najpierw wpisz numer lotu (tylko cyfry).')
+            notifier.show_warning('Wpisz numer lotu')
             return
         self.on_create_dir(self.branch, lot)
 

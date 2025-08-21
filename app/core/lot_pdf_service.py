@@ -107,6 +107,37 @@ class LotPdfService:
             f"Wygenerowano listy \nLot nr.: {lot_number}\nOddział: {branch.name}"
         )
 
+    def create_lot_dirs(
+            self,
+            *,
+            output_dir: str,
+            is_old_pigeon: bool,
+            lot_number: str,
+            sections: int = 5
+    ) -> tuple[str, str]:
+
+        sezon = "S" if is_old_pigeon else "M"
+        lot_number = lot_number.zfill(2)
+
+        dir_name = f"LOT-{sezon}-{lot_number}"
+        final_path = os.path.join(output_dir, dir_name)
+
+        os.makedirs(final_path, exist_ok=True)
+
+        created = []
+        for i in range(1, max(1, sections) + 1):
+            sec_dir = os.path.join(final_path, f"Sekcja {i:02d}")
+            if not os.path.exists(sec_dir):
+                os.makedirs(sec_dir, exist_ok=True)
+                created.append(sec_dir)
+
+        if created:
+            log_info(f"Utworzono podkatalogi sekcji: {', '.join(created)}")
+        else:
+            log_info("Wszystkie podkatalogi sekcji już istniały – nic nie tworzono.")
+
+        return final_path, final_path
+
     def _get_lot_pattern(self, lot_number: Optional[str]) -> re.Pattern:
         if not lot_number or str(lot_number).strip() == "":
             return re.compile(rf'^LOT_{self.suffix}_(\d{{2}})\.\d+$')
