@@ -29,17 +29,25 @@ class SettingsScene:
         self.frame = ttk.Frame(self.app.main_frame)
 
         self.is_old_var = tk.BooleanVar(value=False)
+        self._shortcuts_bound = False
 
     def build(self):
         self.frame.pack(fill='both', expand=True)
+
+        header = ttk.Frame(self.frame)
+        header.pack(fill='x', padx=10, pady=(10, 0))
+        ttk.Label(header, text="Ustawienia", font=("TkDefaultFont", 11, "bold")).pack(side='left')
+        ttk.Label(header, text="Skrót: Ctrl+S", foreground="#555").pack(side='left', padx=(10, 0))
+        ttk.Button(header, text="Zapisz", command=self.save_settings).pack(side='right')
+
         tabs = ttk.Notebook(self.frame)
 
         self.build_lists_tab(tabs)
 
         tabs.pack(fill='both', expand=True, padx=10, pady=10)
 
-        save_btn = ttk.Button(self.frame, text="Zapisz", command=self.save_settings)
-        save_btn.pack(pady=10)
+        # Zapisywanie dostępne przez skrót klawiaturowy (Ctrl+S) na tej scenie
+        self._bind_shortcuts()
 
         self.load_settings()
 
@@ -134,6 +142,32 @@ class SettingsScene:
         self.ring_mask_var.set(data.get("ring_mask", self.ring_mask_var.get()))
         self.default_pdf_dir.set(data.get("default_pdf_dir", self.default_pdf_dir.get()))
 
+    def _on_save_shortcut(self, event=None):
+        self.save_settings()
+        return "break"
+
+    def _bind_shortcuts(self):
+        if self._shortcuts_bound:
+            return
+        root = self.app.root
+        try:
+            root.bind("<Control-s>", self._on_save_shortcut)
+            root.bind("<Control-S>", self._on_save_shortcut)
+            self._shortcuts_bound = True
+        except Exception:
+            pass
+
+    def _unbind_shortcuts(self):
+        if not self._shortcuts_bound:
+            return
+        root = self.app.root
+        try:
+            root.unbind("<Control-s>")
+            root.unbind("<Control-S>")
+        except Exception:
+            pass
+        self._shortcuts_bound = False
+
     def move_up(self):
         idx = self.file_listbox.curselection()
         if idx and idx[0] > 0:
@@ -199,3 +233,7 @@ class SettingsScene:
 
     def _status_text(self) -> str:
         return f"Aktualny typ: {'STARE' if self.is_old_var.get() else 'MŁODE'}"
+
+    def on_leave(self):
+        # Wywoływane przy zmianie sceny — odpinamy skróty
+        self._unbind_shortcuts()
