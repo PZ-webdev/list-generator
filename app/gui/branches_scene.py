@@ -7,6 +7,7 @@ import config
 from app.core.branch_service import BranchService
 from app.dto.branch import Branch
 from app.utils.notifier import show_error, show_success
+from app.utils.ui_state import UIStateStore
 from app.utils.validator import validate_number
 
 
@@ -14,6 +15,7 @@ class BranchesScene:
     def __init__(self, app, branches_file=config.BRANCHES_FILE):
         self.app = app
         self.service = BranchService(branches_file)
+        self.ui_state = UIStateStore()
 
         self.frame = tk.Frame(app.main_frame)
         self.frame.pack(fill='both', expand=True)
@@ -179,6 +181,10 @@ class BranchesScene:
 
     def delete_branch(self, branch: Branch):
         self.service.delete_branch(branch.id)
+        try:
+            self.ui_state.remove_branch(branch.id)
+        except Exception:
+            pass
         show_success('Usunięto oddział!')
         self.refresh_list()
 

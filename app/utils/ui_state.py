@@ -70,3 +70,13 @@ class UIStateStore:
         entry = self.state.setdefault(branch_id, {})
         entry['last_lot'] = str(lot_value or '').strip()
         self._save()
+
+    def remove_branch(self, branch_id: str) -> None:
+        """Usuń stan UI powiązany z danym oddziałem (np. po usunięciu oddziału)."""
+        try:
+            if branch_id in self.state:
+                del self.state[branch_id]
+                self._save()
+        except Exception:
+            # Cicho ignoruj — brak stanu nie powinien zatrzymywać działania aplikacji
+            pass
