@@ -33,6 +33,12 @@ class PdfApp:
         self.root.geometry(f"+{x}+{y}")
 
     def clear_main_frame(self):
+        # Allow the current scene to clean up (e.g., unbind shortcuts)
+        if getattr(self, 'current_scene', None) and hasattr(self.current_scene, 'on_leave'):
+            try:
+                self.current_scene.on_leave()
+            except Exception:
+                pass
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 

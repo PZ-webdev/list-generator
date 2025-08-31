@@ -11,11 +11,7 @@ class AppMenu:
         self.app.root.config(menu=menubar)
 
         menubar.add_command(label="Start", command=self.app.show_main_scene)
-
-        settings_menu = tk.Menu(menubar, tearoff=0)
-        settings_menu.add_command(label="Otwórz ustawienia", command=self.app.show_settings_scene)
-        settings_menu.add_command(label="Zapisz ustawienia", command=self.app.save_settings)
-        menubar.add_cascade(label="Ustawienia", menu=settings_menu)
+        menubar.add_command(label="Ustawienia", command=self.app.show_settings_scene)
 
         helpmenu = tk.Menu(menubar, tearoff=0)
         helpmenu.add_command(label="O programie", command=self.app.show_about)
