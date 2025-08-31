@@ -38,8 +38,7 @@ class SettingsScene:
 
         tabs.pack(fill='both', expand=True, padx=10, pady=10)
 
-        save_btn = ttk.Button(self.frame, text="Zapisz", command=self.save_settings)
-        save_btn.pack(pady=10)
+        # Przycisk "Zapisz" przeniesiono do menu: Ustawienia -> Zapisz ustawienia
 
         self.load_settings()
 

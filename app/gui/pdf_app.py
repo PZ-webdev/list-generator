@@ -20,6 +20,7 @@ class PdfApp:
         self.main_frame = tk.Frame(self.root)
         self.main_frame.pack(fill='both', expand=True)
 
+        self.current_scene = None
         self.menu = AppMenu(self)
         self.show_main_scene()
 
@@ -37,15 +38,24 @@ class PdfApp:
 
     def show_main_scene(self):
         self.clear_main_frame()
-        MainScene(self).build()
+        self.current_scene = MainScene(self)
+        self.current_scene.build()
 
     def show_branches_scene(self):
         self.clear_main_frame()
-        BranchesScene(self).build()
+        self.current_scene = BranchesScene(self)
+        self.current_scene.build()
 
     def show_settings_scene(self):
         self.clear_main_frame()
-        SettingsScene(self).build()
+        self.current_scene = SettingsScene(self)
+        self.current_scene.build()
+
+    def save_settings(self):
+        if isinstance(self.current_scene, SettingsScene):
+            self.current_scene.save_settings()
+        else:
+            notifier.show_warning('Otwórz najpierw ekran Ustawienia, aby zapisać.')
 
     # @staticmethod
     # def show_about():
