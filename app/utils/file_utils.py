@@ -31,6 +31,6 @@ def read_json_utf8(path: str) -> Optional[Any]:
         return None
 
 
-def write_json_utf8(data: list, file_path: str):
+def write_json_utf8(data: Any, file_path: str) -> None:
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)

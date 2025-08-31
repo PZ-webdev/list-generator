@@ -16,15 +16,14 @@ class SettingsDTO:
     default_pdf_dir: str
     is_old_pigeon: bool
 
-    def to_json(self):
+    def to_json(self) -> None:
         write_json_utf8(asdict(self), config.SETTINGS_FILE)
 
     @classmethod
-    def from_json(cls):
+    def from_json(cls) -> "SettingsDTO":
         data = read_json_utf8(config.SETTINGS_FILE)
 
         if not isinstance(data, dict):
             raise ValueError("Plik settings.json nie zawiera prawidłowej struktury (dict)")
 
         return cls(**data)
-

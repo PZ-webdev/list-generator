@@ -64,7 +64,7 @@ class PdfGeneratorService:
             output_dir: str,
             additional_list: bool,
             rating_list: bool
-    ):
+    ) -> None:
         raw_content = read_file_cp852(file_path)
 
         if rating_list:
