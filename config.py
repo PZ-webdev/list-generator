@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / 'data'
 BRANCHES_FILE = DATA_DIR / 'branches.json'
 SETTINGS_FILE = DATA_DIR / 'settings.json'
+UI_STATE_FILE = DATA_DIR / 'ui_state.json'
 
 # Logging
 LOG_LEVEL = 'INFO'
