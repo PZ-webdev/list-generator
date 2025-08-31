@@ -12,6 +12,7 @@ DATA_DIR = BASE_DIR / 'data'
 BRANCHES_FILE = DATA_DIR / 'branches.json'
 SETTINGS_FILE = DATA_DIR / 'settings.json'
 UI_STATE_FILE = DATA_DIR / 'ui_state.json'
+STERDRUK_FILE = DATA_DIR / 'STERDRUK.TXT'
 
 # Logging
 LOG_LEVEL = 'INFO'
