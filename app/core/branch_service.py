@@ -46,6 +46,31 @@ class BranchService:
         self.save_branches()
 
     def update_branch(self, updated: Branch) -> None:
-        self.delete_branch(updated.id)
+        # Replace in place to preserve order
+        for idx, b in enumerate(self.branches):
+            if b.id == updated.id:
+                self.branches[idx] = updated
+                self.save_branches()
+                return
+        # If not found, append as fallback
         self.branches.append(updated)
         self.save_branches()
+
+    # Ordering helpers
+    def _move(self, branch_id: str, offset: int) -> None:
+        try:
+            idx = next(i for i, b in enumerate(self.branches) if b.id == branch_id)
+        except StopIteration:
+            return
+        new_idx = idx + offset
+        if new_idx < 0 or new_idx >= len(self.branches):
+            return
+        item = self.branches.pop(idx)
+        self.branches.insert(new_idx, item)
+        self.save_branches()
+
+    def move_up(self, branch_id: str) -> None:
+        self._move(branch_id, -1)
+
+    def move_down(self, branch_id: str) -> None:
+        self._move(branch_id, 1)
