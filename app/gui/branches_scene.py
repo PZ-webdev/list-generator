@@ -27,6 +27,7 @@ class BranchesScene:
         self.number_entry = None
 
         self.is_old_mode = self._load_is_old()
+        self.editing_branch_id = None  # track edit mode
 
     def build(self):
         self.build_form()
@@ -72,7 +73,7 @@ class BranchesScene:
         btns.grid(row=4, column=0, columnspan=3, sticky="e", padx=pad_x, pady=(pad_y, 2))
 
         ttk.Button(btns, text="Wyczyść", command=self.clear_form).grid(row=0, column=0, padx=(0, 8))
-        ttk.Button(btns, text="Zapisz", command=self.add_branch).grid(row=0, column=1)
+        ttk.Button(btns, text="Zapisz", command=self.save_branch).grid(row=0, column=1)
 
         ttk.Separator(self.frame, orient='horizontal').pack(fill='x', padx=12, pady=(8, 10))
 
@@ -111,6 +112,17 @@ class BranchesScene:
 
             actions = ttk.Frame(row)
             actions.grid(row=0, column=1, sticky='e')
+
+            # Ordering: up/down arrows
+            up_btn = ttk.Button(actions, text="↑", width=3, command=lambda x=b: self.move_up(x))
+            down_btn = ttk.Button(actions, text="↓", width=3, command=lambda x=b: self.move_down(x))
+            up_btn.pack(side='left', padx=(0, 4))
+            down_btn.pack(side='left', padx=(0, 10))
+            if i == 0:
+                up_btn.state(['disabled'])
+            if i == len(filtered) - 1:
+                down_btn.state(['disabled'])
+
             ttk.Button(actions, text="Edytuj", width=10,
                        command=lambda x=b: self.edit_branch(x)).pack(side='left', padx=(0, 6))
             ttk.Button(actions, text="Usuń", width=8,
@@ -133,7 +145,7 @@ class BranchesScene:
             self.output_entry.delete(0, tk.END)
             self.output_entry.insert(0, path)
 
-    def add_branch(self):
+    def save_branch(self):
         name = (self.name_entry.get() or "").strip()
         input_path = (self.input_entry.get() or "").strip()
         output_path = (self.output_entry.get() or "").strip()
@@ -143,13 +155,25 @@ class BranchesScene:
             show_error('Wypełnij wszystkie pola!')
             return
 
-        self.service.add_branch(
-            name=name,
-            number=number,
-            input_path=input_path,
-            output_path=output_path
-        )
-        show_success('Dodano oddział!')
+        if self.editing_branch_id:
+            # Update existing (preserve order)
+            self.service.update_branch(Branch(
+                id=self.editing_branch_id,
+                name=name,
+                number=number,
+                input=input_path,
+                output=output_path
+            ))
+            show_success('Zaktualizowano oddział!')
+            self.editing_branch_id = None
+        else:
+            self.service.add_branch(
+                name=name,
+                number=number,
+                input_path=input_path,
+                output_path=output_path
+            )
+            show_success('Dodano oddział!')
         self.refresh_list()
         self.clear_form()
 
@@ -167,12 +191,20 @@ class BranchesScene:
         self.output_entry.insert(0, branch.output)
         self.number_entry.delete(0, tk.END)
         self.number_entry.insert(0, branch.number)
-
-        self.service.delete_branch(branch.id)
+        # switch to edit mode (do not delete; preserve order)
+        self.editing_branch_id = branch.id
 
     def clear_form(self):
         for e in (self.name_entry, self.input_entry, self.output_entry, self.number_entry):
             e.delete(0, tk.END)
+
+    def move_up(self, branch: Branch):
+        self.service.move_up(branch.id)
+        self.refresh_list()
+
+    def move_down(self, branch: Branch):
+        self.service.move_down(branch.id)
+        self.refresh_list()
 
     def _load_is_old(self) -> bool:
         """Czy globalnie wybrano STARE? (settings.json -> isOldPigeon)"""
