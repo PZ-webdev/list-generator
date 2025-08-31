@@ -33,6 +33,13 @@ class SettingsScene:
 
     def build(self):
         self.frame.pack(fill='both', expand=True)
+
+        header = ttk.Frame(self.frame)
+        header.pack(fill='x', padx=10, pady=(10, 0))
+        ttk.Label(header, text="Ustawienia", font=("TkDefaultFont", 11, "bold")).pack(side='left')
+        ttk.Label(header, text="Skrót: Ctrl+S", foreground="#555").pack(side='left', padx=(10, 0))
+        ttk.Button(header, text="Zapisz", command=self.save_settings).pack(side='right')
+
         tabs = ttk.Notebook(self.frame)
 
         self.build_lists_tab(tabs)
