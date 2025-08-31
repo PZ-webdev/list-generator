@@ -4,6 +4,7 @@ from tkinter import ttk
 from app.dto.branch import Branch
 from app.gui.components.tooltip import Tooltip
 from app.utils import notifier
+from app.utils.ui_state import UIStateStore
 from app.utils.validator import validate_number
 
 
@@ -16,7 +17,8 @@ class CollapsibleRow(ttk.Frame):
     def __init__(self, parent, *,
                  branch: Branch,
                  on_generate,
-                 on_create_dir):
+                 on_create_dir,
+                 state_store: UIStateStore = None):
         """
         :param parent: widget rodzic
         :param branch: obiekt Branch
@@ -29,9 +31,16 @@ class CollapsibleRow(ttk.Frame):
         self.on_create_dir = on_create_dir
 
         self._expanded = False
+        self.state_store = state_store
 
         self.additional_var = tk.BooleanVar(value=False)
         self.rating_var = tk.BooleanVar(value=False)
+
+        # Preload checkbox states from store if available
+        if self.state_store and self.branch.id:
+            flags = self.state_store.get_flags(self.branch.id)
+            self.additional_var.set(bool(flags.get('additional', False)))
+            self.rating_var.set(bool(flags.get('rating', False)))
 
         # UI
         self._build_header()
@@ -39,6 +48,19 @@ class CollapsibleRow(ttk.Frame):
         self._hide_body()
 
         self.columnconfigure(0, weight=1)
+
+        # Persist on change
+        self._bind_flag_persistence()
+
+    def _bind_flag_persistence(self):
+        if not self.state_store or not self.branch.id:
+            return
+        def _on_additional(*_):
+            self.state_store.set_flag(self.branch.id, 'additional', bool(self.additional_var.get()))
+        def _on_rating(*_):
+            self.state_store.set_flag(self.branch.id, 'rating', bool(self.rating_var.get()))
+        self.additional_var.trace_add('write', _on_additional)
+        self.rating_var.trace_add('write', _on_rating)
 
     # ---------- UI ----------
     def _build_header(self):

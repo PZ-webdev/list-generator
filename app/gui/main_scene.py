@@ -12,6 +12,7 @@ from app.utils.logger import log_info, log_error
 from app.core.branch_service import BranchService
 from app.core.lot_pdf_service import LotPdfService
 from app.core.pdf_generator_service import PdfGeneratorService
+from app.utils.ui_state import UIStateStore
 
 
 class MainScene:
@@ -22,6 +23,7 @@ class MainScene:
 
         self.branch_service = BranchService(branches_file)
         self.lot_pdf_service = LotPdfService(PdfGeneratorService())
+        self.ui_state = UIStateStore()
 
         self.is_old_pigeon = self._load_is_old()
 
@@ -68,7 +70,8 @@ class MainScene:
                 rows_container,
                 branch=branch,
                 on_generate=self._on_generate_row,
-                on_create_dir=self._on_create_dir
+                on_create_dir=self._on_create_dir,
+                state_store=self.ui_state
             )
             row.grid(row=idx, column=0, sticky="ew", padx=4, pady=2)
 
