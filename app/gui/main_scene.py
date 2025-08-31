@@ -100,6 +100,8 @@ class MainScene:
         single_btn.grid(row=0, column=0, padx=(0, 10), pady=(0, 6), sticky="w")
         Tooltip(single_btn, "Wybierz pojedynczy plik TXT i wygeneruj PDF")
 
+        # STERDRUK przeniesiony do Ustawień → zakładka INNE
+
     def _on_generate_row(self, branch: Branch, lot_number: str, additional: bool, rating: bool):
         self.generate_for_branch(branch, lot_number, additional, rating)
 
@@ -172,3 +174,5 @@ class MainScene:
 
     def _title_text(self) -> str:
         return f"Loty gołębi {'STARYCH' if self.is_old_pigeon else 'MŁODYCH'}"
+
+    # (brak) – przeniesione do SettingsScene

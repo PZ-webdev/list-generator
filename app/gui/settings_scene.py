@@ -2,6 +2,8 @@ import os
 import json
 import tkinter as tk
 from tkinter import ttk, filedialog
+from tkinter import scrolledtext
+import shutil
 
 import config
 from app.dto.settings_dto import SettingsDTO
@@ -41,9 +43,8 @@ class SettingsScene:
         ttk.Button(header, text="Zapisz", command=self.save_settings).pack(side='right')
 
         tabs = ttk.Notebook(self.frame)
-
         self.build_lists_tab(tabs)
-
+        self.build_other_tab(tabs)
         tabs.pack(fill='both', expand=True, padx=10, pady=10)
 
         # Zapisywanie dostępne przez skrót klawiaturowy (Ctrl+S) na tej scenie
@@ -112,6 +113,22 @@ class SettingsScene:
         tk.Button(frame_output_dir, text="Wybierz katalog", command=choose_directory).grid(
             row=0, column=1, padx=5, pady=5
         )
+
+    def build_other_tab(self, tabs: ttk.Notebook):
+        other_tab = ttk.Frame(tabs)
+        tabs.add(other_tab, text="Inne")
+
+        examples_frame = ttk.LabelFrame(other_tab, text="Przykładowy STERDRUK.TXT")
+        examples_frame.pack(fill="x", padx=20, pady=10)
+
+        ex_buttons = ttk.Frame(examples_frame)
+        ex_buttons.pack(anchor="w", padx=8, pady=8)
+
+        preview_btn = ttk.Button(ex_buttons, text="Podgląd", command=self.preview_sterdruk)
+        preview_btn.grid(row=0, column=0, padx=(0, 10), pady=(0, 6), sticky="w")
+
+        save_btn = ttk.Button(ex_buttons, text="Zapisz", command=self.save_sterdruk)
+        save_btn.grid(row=0, column=1, padx=(0, 10), pady=(0, 6), sticky="w")
 
     def load_settings(self):
         data = {}
@@ -237,3 +254,50 @@ class SettingsScene:
     def on_leave(self):
         # Wywoływane przy zmianie sceny — odpinamy skróty
         self._unbind_shortcuts()
+
+    # ----- INNE: STERDRUK helpers -----
+    def _sterdruk_path(self) -> str:
+        # Use packaged resource when frozen, else config path in repo
+        try:
+            import sys
+            if getattr(sys, 'frozen', False):
+                from app.utils.resource_helper import resource_path
+                return resource_path('data/STERDRUK.TXT')
+        except Exception:
+            pass
+        return str(config.STERDRUK_FILE)
+
+    def preview_sterdruk(self):
+        path = self._sterdruk_path()
+        if not os.path.exists(path):
+            show_error('Nie znaleziono pliku STERDRUK.TXT w zasobach aplikacji.')
+            return
+        try:
+            from app.utils.file_utils import read_file_cp852
+            content = read_file_cp852(path)
+        except Exception:
+            content = ''
+
+        win = tk.Toplevel(self.frame)
+        win.title('Podgląd: STERDRUK.TXT')
+        win.geometry('700x500')
+
+        txt = scrolledtext.ScrolledText(win, wrap='none', font=('Courier New', 9))
+        txt.pack(fill='both', expand=True)
+        txt.insert('1.0', content)
+        txt.configure(state='disabled')
+
+    def save_sterdruk(self):
+        path = self._sterdruk_path()
+        if not os.path.exists(path):
+            show_error('Nie znaleziono pliku STERDRUK.TXT w zasobach aplikacji.')
+            return
+        target = filedialog.asksaveasfilename(defaultextension='.TXT', initialfile='STERDRUK.TXT',
+                                              filetypes=[('Plik tekstowy', '*.TXT'), ('Wszystkie', '*.*')])
+        if not target:
+            return
+        try:
+            shutil.copyfile(path, target)
+            show_success('Zapisano kopię pliku STERDRUK.TXT')
+        except Exception as e:
+            show_error(f'Nie udało się zapisać pliku: {e}')
