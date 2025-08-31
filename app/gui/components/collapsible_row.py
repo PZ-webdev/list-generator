@@ -83,7 +83,12 @@ class CollapsibleRow(ttk.Frame):
 
         ttk.Label(self.header, text='Lot nr:').grid(row=0, column=3, padx=(10, 2), sticky='e')
         vcmd = (self.register(validate_number(99)), '%P')
-        self.lot_entry = ttk.Entry(self.header, width=5, justify='center', validate='key', validatecommand=vcmd)
+        self.lot_var = tk.StringVar(value='')
+        # preload last lot from state
+        if self.state_store and self.branch.id:
+            self.lot_var.set(self.state_store.get_last_lot(self.branch.id))
+        self.lot_entry = ttk.Entry(self.header, width=5, justify='center', validate='key', validatecommand=vcmd,
+                                   textvariable=self.lot_var)
         self.lot_entry.grid(row=0, column=4, padx=(0, 10))
         Tooltip(self.lot_entry, "Podaj numer lotu (0–99)")
 
@@ -103,6 +108,14 @@ class CollapsibleRow(ttk.Frame):
             w.bind("<Button-1>", self._toggle)
             w.configure(cursor="hand2")
 
+        # Persist lot number on change (only digits or empty)
+        if self.state_store and self.branch.id:
+            def _on_lot_change(*_):
+                value = (self.lot_var.get() or '').strip()
+                if value == '' or value.isdigit():
+                    self.state_store.set_last_lot(self.branch.id, value)
+            self.lot_var.trace_add('write', _on_lot_change)
+
     def _build_body(self):
         self.body = ttk.Frame(self, padding=(24, 8, 8, 8))
         self.body.columnconfigure(0, weight=1)
@@ -115,14 +128,14 @@ class CollapsibleRow(ttk.Frame):
         Tooltip(create_btn, "Utwórz katalog: LOT_{S|M}_{NN}.001 w katalogu wejściowym oddziału")
 
     def _on_click_generate(self):
-        lot = self.lot_entry.get().strip()
+        lot = self.lot_var.get().strip() if hasattr(self, 'lot_var') else self.lot_entry.get().strip()
         if not lot.isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
             return
         self.on_generate(self.branch, lot, bool(self.additional_var.get()), bool(self.rating_var.get()))
 
     def _on_click_create_dir(self):
-        lot = self.lot_entry.get().strip()
+        lot = self.lot_var.get().strip() if hasattr(self, 'lot_var') else self.lot_entry.get().strip()
         if not lot.isdigit():
             notifier.show_warning('Wpisz numer lotu')
             return

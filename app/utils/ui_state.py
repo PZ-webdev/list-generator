@@ -61,3 +61,12 @@ class UIStateStore:
         entry[key] = bool(value)
         self._save()
 
+    def get_last_lot(self, branch_id: str) -> str:
+        entry = self.state.get(branch_id, {})
+        val = entry.get('last_lot', '')
+        return str(val) if val is not None else ''
+
+    def set_last_lot(self, branch_id: str, lot_value: str) -> None:
+        entry = self.state.setdefault(branch_id, {})
+        entry['last_lot'] = str(lot_value or '').strip()
+        self._save()
