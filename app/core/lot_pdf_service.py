@@ -114,7 +114,7 @@ class LotPdfService:
             is_old_pigeon: bool,
             lot_number: str,
             sections: int = 5
-    ) -> tuple[str, str]:
+    ) -> Tuple[str, str]:
 
         sezon = "S" if is_old_pigeon else "M"
         lot_number = lot_number.zfill(2)

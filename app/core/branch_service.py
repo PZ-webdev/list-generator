@@ -17,10 +17,10 @@ class BranchService:
             return [Branch.from_dict(item) for item in (data or [])]
         return []
 
-    def save_branches(self):
+    def save_branches(self) -> None:
         write_json_utf8([b.to_dict() for b in self.branches], self.file_path)
 
-    def get_all(self) -> list[Branch]:
+    def get_all(self) -> List[Branch]:
         return self.branches
 
     def add_branch(
@@ -29,7 +29,7 @@ class BranchService:
             number: str,
             input_path: str,
             output_path: str
-    ):
+    ) -> None:
         next_id = str(max([int(b.id) for b in self.branches], default=0) + 1)
         new_branch = Branch(
             id=next_id,
@@ -41,11 +41,11 @@ class BranchService:
         self.branches.append(new_branch)
         self.save_branches()
 
-    def delete_branch(self, branch_id: str):
+    def delete_branch(self, branch_id: str) -> None:
         self.branches = [b for b in self.branches if b.id != branch_id]
         self.save_branches()
 
-    def update_branch(self, updated: Branch):
+    def update_branch(self, updated: Branch) -> None:
         self.delete_branch(updated.id)
         self.branches.append(updated)
         self.save_branches()
