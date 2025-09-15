@@ -54,6 +54,7 @@ class UIStateStore:
         return {
             'additional': bool(entry.get('additional', False)),
             'rating': bool(entry.get('rating', False)),
+            'league2': bool(entry.get('league2', False)),
         }
 
     def set_flag(self, branch_id: str, key: str, value: bool) -> None:

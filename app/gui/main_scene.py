@@ -102,8 +102,8 @@ class MainScene:
 
         # STERDRUK przeniesiony do Ustawień → zakładka INNE
 
-    def _on_generate_row(self, branch: Branch, lot_number: str, additional: bool, rating: bool):
-        self.generate_for_branch(branch, lot_number, additional, rating)
+    def _on_generate_row(self, branch: Branch, lot_number: str, additional: bool, rating: bool, league2: bool):
+        self.generate_for_branch(branch, lot_number, additional, rating, league2)
 
     def _on_create_dir(self, branch: Branch, lot_number: str):
         try:
@@ -128,7 +128,7 @@ class MainScene:
             notifier.show_error("Nie udało się utworzyć katalogu lotu.")
             log_error(f"Błąd tworzenia katalogów: {e}")
 
-    def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool):
+    def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool, league2_list: bool):
         if not lot_number.strip().isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
             return
@@ -146,6 +146,7 @@ class MainScene:
             lot_number,
             additional_list,
             rating_list,
+            league2_list,
             progress_callback=update_progress
         )
         self.progress.pack_forget()

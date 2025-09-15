@@ -22,7 +22,7 @@ class CollapsibleRow(ttk.Frame):
         """
         :param parent: widget rodzic
         :param branch: obiekt Branch
-        :param on_generate: callback(branch, lot_number:str, additional:bool, rating:bool)
+        :param on_generate: callback(branch, lot_number:str, additional:bool, rating:bool, league2:bool)
         :param on_create_dir: callback(branch, lot_number:str) -> None
         """
         super().__init__(parent)
@@ -35,12 +35,14 @@ class CollapsibleRow(ttk.Frame):
 
         self.additional_var = tk.BooleanVar(value=False)
         self.rating_var = tk.BooleanVar(value=False)
+        self.league2_var = tk.BooleanVar(value=False)
 
         # Preload checkbox states from store if available
         if self.state_store and self.branch.id:
             flags = self.state_store.get_flags(self.branch.id)
             self.additional_var.set(bool(flags.get('additional', False)))
             self.rating_var.set(bool(flags.get('rating', False)))
+            self.league2_var.set(bool(flags.get('league2', False)))
 
         # UI
         self._build_header()
@@ -59,15 +61,18 @@ class CollapsibleRow(ttk.Frame):
             self.state_store.set_flag(self.branch.id, 'additional', bool(self.additional_var.get()))
         def _on_rating(*_):
             self.state_store.set_flag(self.branch.id, 'rating', bool(self.rating_var.get()))
+        def _on_league2(*_):
+            self.state_store.set_flag(self.branch.id, 'league2', bool(self.league2_var.get()))
         self.additional_var.trace_add('write', _on_additional)
         self.rating_var.trace_add('write', _on_rating)
+        self.league2_var.trace_add('write', _on_league2)
 
     # ---------- UI ----------
     def _build_header(self):
         self.header = ttk.Frame(self)
         self.header.grid(row=0, column=0, sticky="ew", padx=(5, 5), pady=(4, 0))
 
-        for c in range(8):
+        for c in range(9):
             self.header.columnconfigure(c, weight=0)
         self.header.columnconfigure(2, weight=1)
 
@@ -100,8 +105,12 @@ class CollapsibleRow(ttk.Frame):
         self.cb_rating.grid(row=0, column=6, padx=3, sticky='w')
         Tooltip(self.cb_rating, "Dołącz listy klasyfikacji")
 
+        self.cb_league2 = ttk.Checkbutton(self.header, variable=self.league2_var)
+        self.cb_league2.grid(row=0, column=7, padx=3, sticky='w')
+        Tooltip(self.cb_league2, "Dołącz listę II ligi (jeśli dostępna)")
+
         self.generate_btn = ttk.Button(self.header, text='Generuj', command=self._on_click_generate)
-        self.generate_btn.grid(row=0, column=7, padx=(10, 0), sticky='e')
+        self.generate_btn.grid(row=0, column=8, padx=(10, 0), sticky='e')
         Tooltip(self.generate_btn, "Wygeneruj listy PDF dla podanego lotu i wybranego oddziału")
 
         for w in (self.name_lbl, self.spacer):
@@ -132,7 +141,7 @@ class CollapsibleRow(ttk.Frame):
         if not lot.isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
             return
-        self.on_generate(self.branch, lot, bool(self.additional_var.get()), bool(self.rating_var.get()))
+        self.on_generate(self.branch, lot, bool(self.additional_var.get()), bool(self.rating_var.get()), bool(self.league2_var.get()))
 
     def _on_click_create_dir(self):
         lot = self.lot_var.get().strip() if hasattr(self, 'lot_var') else self.lot_entry.get().strip()

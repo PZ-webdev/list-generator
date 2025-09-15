@@ -37,10 +37,19 @@ class LotPdfService:
 
     def get_txt_files(self, directory: str) -> List[Tuple[str, str]]:
         matching_files: List[Tuple[str, str]] = []
-        for root, _, files in os.walk(directory):
+        for root, dirs, files in os.walk(directory):
+            # Do not descend into II-LIGA (or fallback 'II liga') directories
+            try:
+                dirs[:] = [d for d in dirs if d.upper() not in ('II-LIGA', 'II LIGA')]
+            except Exception:
+                pass
             for file in files:
                 upper = file.upper()
                 if upper.startswith(f'LKON_{self.suffix}') and upper.endswith('.TXT'):
+                    # Extra guard: skip any file physically under II-LIGA
+                    parts_up = [p.upper() for p in os.path.normpath(root).split(os.sep)]
+                    if 'II-LIGA' in parts_up or 'II LIGA' in parts_up:
+                        continue
                     matching_files.append((root, file))
         log_info(f'Znaleziono {len(matching_files)} plików TXT typu LKON_{self.suffix} w {directory}')
         return matching_files
@@ -51,6 +60,7 @@ class LotPdfService:
             lot_number: str,
             additional_list: bool,
             rating_list: bool,
+            league2_list: bool = False,
             progress_callback=None
     ):
         input_dir = branch.input
@@ -91,7 +101,8 @@ class LotPdfService:
                     txt_path,
                     output_dir,
                     additional_list,
-                    rating_list
+                    rating_list,
+                    league2_list
                 )
 
                 log_info(f'Zapisano PDF do: {output_dir}')
