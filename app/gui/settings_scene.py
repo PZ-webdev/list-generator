@@ -95,7 +95,7 @@ class SettingsScene:
         frame_mask = ttk.LabelFrame(lists_tab, text="Maskowanie nazw obrączek")
         frame_mask.grid(row=3, column=0, padx=20, pady=10, sticky='nsew')
 
-        self.ring_mask_var = tk.StringVar(value="#####")
+        self.ring_mask_var = tk.StringVar(value="XXXXX")
         ttk.Entry(frame_mask, textvariable=self.ring_mask_var, width=40).grid(row=0, column=0, padx=5, pady=5)
 
         frame_output_dir = ttk.LabelFrame(lists_tab, text="Domyślny katalog dla pojedynczego PDF")

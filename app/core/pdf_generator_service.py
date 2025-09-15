@@ -131,13 +131,34 @@ class PdfGeneratorService:
                         league_dir = alt_dir if os.path.isdir(alt_dir) else league_dir
                     if os.path.isdir(league_dir):
                         base_name_no_ext = os.path.splitext(os.path.basename(file_path))[0]
-                        # search for a TXT file starting with the same prefix
+                        # search recursively for a TXT file starting with the same prefix or LKON token
                         candidate = None
-                        for name in os.listdir(league_dir):
-                            upper = name.upper()
-                            if upper.endswith('.TXT') and upper.startswith(base_name_no_ext.upper()):
-                                candidate = os.path.join(league_dir, name)
+                        import re
+                        token = None
+                        m = re.match(r'^(LKON_[SM]\d{2})', base_name_no_ext.upper())
+                        if m:
+                            token = m.group(1)
+                        for r, _, files in os.walk(league_dir):
+                            for name in sorted(files):
+                                upper = name.upper()
+                                if not upper.endswith('.TXT'):
+                                    continue
+                                if upper.startswith(base_name_no_ext.upper()) or (token and upper.startswith(token)):
+                                    candidate = os.path.join(r, name)
+                                    break
+                            if candidate:
                                 break
+                        if not candidate:
+                            # Fallback: single TXT anywhere in II-LIGA
+                            only = None
+                            count = 0
+                            for r, _, files in os.walk(league_dir):
+                                for n in files:
+                                    if n.upper().endswith('.TXT'):
+                                        count += 1
+                                        only = os.path.join(r, n)
+                            if count == 1:
+                                candidate = only
                         if candidate and os.path.exists(candidate) and os.path.abspath(candidate) != os.path.abspath(file_path):
                             league_raw = read_file_cp852(candidate)
                             league_html = self.text_service.transform_control_codes(league_raw)
@@ -191,3 +212,96 @@ class PdfGeneratorService:
             os.path.join(output_dir, open_name),
             os.path.join(output_dir, closed_name),
         )
+
+    def generate_league2_only_to_path(
+            self,
+            branch: Branch,
+            file_path: str,
+            output_dir: str,
+            additional_list: bool = False,
+    ) -> None:
+        """Wygeneruj osobny PDF 'II liga' dla listy oddziałowej, jeśli istnieje źródło w II-LIGA.
+
+        Podstawą dopasowania jest prefiks nazwy pliku LKON_* (bez rozszerzenia).
+        """
+        # Odrzuć sekcje
+        parent_dir_name = os.path.basename(os.path.dirname(file_path))
+        if parent_dir_name.upper().startswith('SEKCJA.'):
+            raise ValueError('Generowanie II ligi tylko dla listy oddziałowej, nie sekcyjnej')
+
+        # Znajdź katalog LOT_*
+        current_dir = os.path.dirname(file_path)
+        lot_root = ''
+        while True:
+            base = os.path.basename(current_dir)
+            if base.upper().startswith('LOT_'):
+                lot_root = current_dir
+                break
+            parent = os.path.dirname(current_dir)
+            if parent == current_dir:
+                break
+            current_dir = parent
+        if not lot_root:
+            raise ValueError('Nie znaleziono katalogu LOT_* dla pliku')
+
+        # Katalog II-LIGA (z fallbackiem 'II liga')
+        league_dir = os.path.join(lot_root, 'II-LIGA')
+        if not os.path.isdir(league_dir):
+            alt_dir = os.path.join(lot_root, 'II liga')
+            league_dir = alt_dir if os.path.isdir(alt_dir) else league_dir
+        if not os.path.isdir(league_dir):
+            raise FileNotFoundError('Brak katalogu II-LIGA dla tego lotu')
+
+        base_name_no_ext = os.path.splitext(os.path.basename(file_path))[0]
+        candidate = None
+        import re
+        token = None
+        m = re.match(r'^(LKON_[SM]\d{2})', base_name_no_ext.upper())
+        if m:
+            token = m.group(1)
+        # search recursively for matches
+        txt_paths = []
+        for r, _, files in os.walk(league_dir):
+            for n in files:
+                if n.upper().endswith('.TXT'):
+                    txt_paths.append(os.path.join(r, n))
+        # exact base prefix
+        for p in sorted(txt_paths):
+            if os.path.basename(p).upper().startswith(base_name_no_ext.upper()):
+                candidate = p
+                break
+        # token-based
+        if not candidate and token:
+            for p in sorted(txt_paths):
+                if os.path.basename(p).upper().startswith(token):
+                    candidate = p
+                    break
+        # single file fallback
+        if not candidate and len(txt_paths) == 1:
+            candidate = txt_paths[0]
+
+        if not candidate or not os.path.exists(candidate) or os.path.abspath(candidate) == os.path.abspath(file_path):
+            raise FileNotFoundError('Brak pliku II ligi odpowiadającego tej liście')
+
+        # Transformuj II ligę
+        league_raw = read_file_cp852(candidate)
+        league_html = self.text_service.transform_control_codes(league_raw)
+        league_html = self.text_service.center_only_first_page(league_html)
+
+        template_path = resource_path('app/templates/pdf_template.html')
+        html_template = read_file_utf8(template_path)
+        filled_html = html_template.replace('{{ content }}', league_html)
+
+        # Ścieżki wyjściowe: taka sama baza jak lista oddziałowa + ' II liga'
+        open_pdf_path, closed_pdf_path = self.get_output_filenames(branch, file_path, output_dir)
+        root_no_ext, ext = os.path.splitext(open_pdf_path)
+        out_league = f"{root_no_ext} II liga{ext}"
+
+        pdfkit.from_string(filled_html, out_league, configuration=self.config)
+
+        if additional_list:
+            closed_root_no_ext, closed_ext = os.path.splitext(closed_pdf_path)
+            out_league_closed = f"{root_no_ext} II liga - ZAMKNIĘTA{closed_ext}"
+            league_masked = self.text_service.mask_pigeon_rings(league_html)
+            filled_html_masked = html_template.replace('{{ content }}', league_masked)
+            pdfkit.from_string(filled_html_masked, out_league_closed, configuration=self.config)

@@ -118,6 +118,68 @@ class LotPdfService:
             f"Wygenerowano listy \nLot nr.: {lot_number}\nOddział: {branch.name}"
         )
 
+    def generate_league2_only_for_lot(
+            self,
+            branch: Branch,
+            lot_number: str,
+            additional_list: bool = False,
+            progress_callback=None
+    ) -> None:
+        """Wygeneruj osobny PDF z II ligą (jeśli istnieje) dla list oddziałowych.
+
+        Gdy brak pliku/katalogu II-LIGA, pomiń bez błędu.
+        """
+        input_dir = branch.input
+        base_output_dir = branch.output
+        os.makedirs(base_output_dir, exist_ok=True)
+
+        matched_folder = self.get_matching_lot_dir(input_dir, lot_number)
+        if not matched_folder:
+            return
+
+        lot_path = os.path.join(input_dir, matched_folder)
+        matching_files = self.get_txt_files(lot_path)
+
+        # tylko oddziałowe (bez SEKCJA.*)
+        branch_level_files = []
+        for root, file in matching_files:
+            parent = os.path.basename(root)
+            if not parent.upper().startswith('SEKCJA.'):
+                branch_level_files.append((root, file))
+
+        if not branch_level_files:
+            return
+
+        total = len(branch_level_files)
+        for i, (root, file) in enumerate(branch_level_files, 1):
+            txt_path = os.path.join(root, file)
+            try:
+                relative_path = os.path.relpath(txt_path, branch.input)
+                parts = relative_path.split(os.sep)
+                lot_folder_name = next((p for p in parts if p.startswith(f"LOT_{self.suffix}_")), None)
+                if not lot_folder_name:
+                    continue
+
+                output_dir = os.path.join(base_output_dir, lot_folder_name)
+                os.makedirs(output_dir, exist_ok=True)
+
+                try:
+                    self.pdf_generator.generate_league2_only_to_path(
+                        branch,
+                        txt_path,
+                        output_dir,
+                        additional_list=additional_list,
+                    )
+                except FileNotFoundError:
+                    # brak II-LIGA – pomiń cicho
+                    pass
+            except Exception as e:
+                log_error(f'Błąd generowania II ligi dla {txt_path}: {e}')
+                continue
+
+            if progress_callback:
+                progress_callback(i, total)
+
     def create_lot_dirs(
             self,
             *,

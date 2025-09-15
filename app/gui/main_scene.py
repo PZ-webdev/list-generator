@@ -149,6 +149,16 @@ class MainScene:
             league2_list,
             progress_callback=update_progress
         )
+        # Po głównej generacji spróbuj utworzyć osobny PDF z II ligą (jeśli istnieje katalog/plik)
+        try:
+            self.lot_pdf_service.generate_league2_only_for_lot(
+                branch,
+                lot_number,
+                additional_list=additional_list,
+                progress_callback=update_progress
+            )
+        except Exception:
+            pass
         self.progress.pack_forget()
 
     def generate_single_file(self):
