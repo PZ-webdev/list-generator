@@ -46,3 +46,36 @@ def test_mask_pigeon_rings_default_and_custom(monkeypatch):
     monkeypatch.setattr('app.dto.settings_dto.SettingsDTO.from_json', lambda: Dummy())
     masked2 = s.mask_pigeon_rings(text)
     assert masked2.endswith('****** end')
+def test_remove_empty_section_rows():
+    s = TextProcessingService()
+    src = (
+        "    |    SEKCJA    |Hod|W|Gon|% Ngr|\n"
+        "    |nr 1          |  0|  0|  0| 0.0|\n"
+        "    |KROSNO        | 16|861|239|27.8|\n"
+        "    |nr 2          |  0|  0|  0| 0.0|\n"
+        "    |SZCZEPAŃCOWA  | 13|846|226|26.7|\n"
+    )
+    out = s.transform_control_codes(src)
+    assert 'nr 1' not in out and 'nr 2' not in out
+    assert 'KROSNO' in out and 'SZCZEPA' in out
+
+
+def test_ensure_page_break_after_section_table_inserts_ff():
+    s = TextProcessingService()
+    src = (
+        "ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂ\n"
+        "³    SEKCJA     ³\n"
+        "ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅ\n"
+        "³nr 1           ³  0  0  0  0.0\n"
+        "³KROSNO         ³ 10 271  68 25.1\n"
+        "ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅ\n"
+        "³ RAZEM ODDZIA  ³ 27  763  191 25.0\n"
+        "ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁ\n"
+        "NEXT CONTENT\n"
+    )
+    out = s.transform_control_codes(src)
+    assert '<div class="page-break"></div>' in out
+
+    src2 = src.replace('NEXT CONTENT', '\fNEXT CONTENT')
+    out2 = s.transform_control_codes(src2)
+    assert out2.count('<div class="page-break"></div>') == 1
