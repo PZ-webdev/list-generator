@@ -72,8 +72,8 @@ class TextProcessingService:
         return pattern.sub(replacer, text)
 
     def _remove_empty_section_rows(self, text: str) -> str:
-        lines = text.splitlines()
-        kept = []
+        lines = text.splitlines(keepends=True)
+        kept: List[str] = []
         for line in lines:
             # detect "nr <digits>" placeholder rows with all zeros in numeric cols
             is_nr = re.search(r"\bnr\s*\d+\b", line, flags=re.IGNORECASE)
@@ -81,7 +81,7 @@ class TextProcessingService:
             if is_nr and all_zero_cols:
                 continue
             kept.append(line)
-        return "\n".join(kept)
+        return ''.join(kept)
 
     def _ensure_page_break_after_section_table(self, text: str) -> str:
         # Ensure that the results table starts from a new page — ideally AFTER the
