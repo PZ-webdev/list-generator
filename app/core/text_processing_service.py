@@ -84,20 +84,34 @@ class TextProcessingService:
         return "\n".join(kept)
 
     def _ensure_page_break_after_section_table(self, text: str) -> str:
-        # Work with original control characters before conversion
+        # Ensure that the results table starts from a new page — ideally AFTER the
+        # signature line ("PREZES"). Fall back to after the bottom border if needed.
         lines = text.splitlines(keepends=True)
         out: List[str] = []
-        saw_summary = False
+        pending_after_summary = False
         for i, line in enumerate(lines):
             out.append(line)
-            # Mark that we've seen the summary total row
+
+            # Detect the summary total row
             if re.search(r'RAZEM', line, flags=re.IGNORECASE) and re.search(r'ODDZ', line, flags=re.IGNORECASE):
-                saw_summary = True
+                pending_after_summary = True
                 continue
-            # Insert FF right after the bottom border that follows the summary
-            if saw_summary and re.match(r'^[└À].*', line):
-                lookahead = ''.join(lines[i+1:i+6])
-                if ('\f' not in lookahead) and ('\x0c' not in lookahead):
-                    out.append('\f')
-                saw_summary = False
+
+            if pending_after_summary:
+                # Prefer to insert after the signature line "PREZES"
+                if re.search(r'PREZES', line, flags=re.IGNORECASE):
+                    lookahead = ''.join(lines[i+1:i+6])
+                    if ('\f' not in lookahead) and ('\x0c' not in lookahead):
+                        out.append('\f')
+                    pending_after_summary = False
+                    continue
+
+                # If we encounter the bottom border and we still didn't see PREZES,
+                # insert after the border (fallback for atypical files)
+                if re.match(r'^[└À].*', line):
+                    lookahead = ''.join(lines[i+1:i+6])
+                    if ('\f' not in lookahead) and ('\x0c' not in lookahead):
+                        out.append('\f')
+                    pending_after_summary = False
+
         return ''.join(out)
