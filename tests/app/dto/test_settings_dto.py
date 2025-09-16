@@ -17,7 +17,7 @@ def test_settings_dto_from_json_and_to_json(tmp_path, monkeypatch):
         'filename_section': 'OPEN_{BRANCH}_{DATE}_S{SECTION}.pdf',
         'filename_section_closed': 'CLOSED_{BRANCH}_{DATE}_S{SECTION}.pdf',
         'attached_files': ['PHD_1AS.TXT'],
-        'ring_mask': '#####',
+        'ring_mask': 'XXXXX',
         'default_pdf_dir': str(tmp_path),
         'is_old_pigeon': False,
     }
