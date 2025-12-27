@@ -12,6 +12,7 @@ from app.utils.logger import log_info, log_error
 from app.core.branch_service import BranchService
 from app.core.lot_pdf_service import LotPdfService
 from app.core.pdf_generator_service import PdfGeneratorService
+from app.core.ranking_service import RankingService
 from app.utils.ui_state import UIStateStore
 
 
@@ -23,7 +24,18 @@ class MainScene:
 
         self.branch_service = BranchService(branches_file)
         self.lot_pdf_service = LotPdfService(PdfGeneratorService())
+        self.ranking_service = RankingService()
         self.ui_state = UIStateStore()
+
+        type_order = ('C', 'S', 'M', 'I', 'G')
+        self.ranking_type_vars = {
+            lot_type: tk.BooleanVar(master=self.frame, value=(lot_type == 'C'))
+            for lot_type in type_order
+        }
+        self.ranking_limit_var = tk.IntVar(
+            master=self.frame,
+            value=RankingService.DEFAULT_TOP_LIMIT,
+        )
 
         self.is_old_pigeon = self._load_is_old()
 
@@ -100,6 +112,40 @@ class MainScene:
         single_btn.grid(row=0, column=0, padx=(0, 10), pady=(0, 6), sticky="w")
         Tooltip(single_btn, "Wybierz pojedynczy plik TXT i wygeneruj PDF")
 
+        ranking_frame = ttk.LabelFrame(other_inner, text="Ranking hodowców")
+        ranking_frame.pack(fill='x', padx=10, pady=10)
+
+        type_frame = ttk.Frame(ranking_frame)
+        type_frame.grid(row=0, column=0, padx=8, pady=(8, 4), sticky='w')
+
+        ttk.Label(type_frame, text="Typ lotu:").grid(row=0, column=0, padx=(0, 6))
+        for idx, (lot_type, var) in enumerate(self.ranking_type_vars.items(), start=1):
+            ttk.Checkbutton(
+                type_frame,
+                text=lot_type,
+                variable=var
+            ).grid(row=0, column=idx, padx=4)
+
+        limit_frame = ttk.Frame(ranking_frame)
+        limit_frame.grid(row=1, column=0, padx=8, pady=(0, 8), sticky='w')
+        ttk.Label(limit_frame, text="Liczba konkursów:").grid(row=0, column=0, padx=(0, 6))
+        limit_spin = tk.Spinbox(
+            limit_frame,
+            from_=1,
+            to=999999,
+            width=6,
+            textvariable=self.ranking_limit_var,
+        )
+        limit_spin.grid(row=0, column=1, sticky='w')
+
+        ranking_btn = ttk.Button(
+            ranking_frame,
+            text="Wczytaj WSP_LKON.TXT",
+            command=self.generate_ranking_from_wsp
+        )
+        ranking_btn.grid(row=2, column=0, padx=8, pady=(0, 8), sticky='w')
+        Tooltip(ranking_btn, "Wybierz plik WSP_LKON.TXT i utwórz punktację")
+
         # STERDRUK przeniesiony do Ustawień → zakładka INNE
 
     def _on_generate_row(self, branch: Branch, lot_number: str, additional: bool, rating: bool, league2: bool):
@@ -171,6 +217,38 @@ class MainScene:
             except Exception as e:
                 log_error(f'Wystąpił błąd generowania pliku PDF: {e}')
                 notifier.show_error(str(e))
+
+    def generate_ranking_from_wsp(self):
+        file_path = filedialog.askopenfilename(filetypes=[('Listy konkursowe', ('WSP_LKON.TXT', '*.TXT'))])
+        if not file_path:
+            return
+        try:
+            log_info(f'Generowanie rankingu z pliku: {file_path}')
+            selected_types = [
+                lot_type
+                for lot_type, var in self.ranking_type_vars.items()
+                if var.get()
+            ]
+            if not selected_types:
+                selected_types = ['C']
+
+            try:
+                requested_limit = int(self.ranking_limit_var.get())
+            except (TypeError, ValueError):
+                requested_limit = RankingService.DEFAULT_TOP_LIMIT
+
+            output_path = self.ranking_service.generate_scoreboard(
+                file_path,
+                allowed_types=selected_types,
+                top_limit=requested_limit,
+            )
+            notifier.show_success(f'Zapisano plik Punktacja.TXT:\n{output_path}')
+        except FileNotFoundError as err:
+            notifier.show_warning(str(err))
+            log_error(f'Niepowodzenie rankingu: {err}')
+        except Exception as exc:
+            log_error(f'Wystąpił błąd generowania rankingu: {exc}')
+            notifier.show_error(str(exc))
 
     def _load_is_old(self) -> bool:
         """Wczytaj is_old_pigeon z settings.json (domyślnie False = MŁODE)."""
