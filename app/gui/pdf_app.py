@@ -26,11 +26,11 @@ class PdfApp:
 
     def center_window(self):
         self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (height // 2)
-        self.root.geometry(f"+{x}+{y}")
+        width = max(self.root.winfo_width(), config.WINDOW_WIDTH)
+        height = max(self.root.winfo_height(), config.WINDOW_HEIGHT)
+        x = max((self.root.winfo_screenwidth() // 2) - (width // 2), 0)
+        y = max((self.root.winfo_screenheight() // 2) - (height // 2), 0)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
 
     def clear_main_frame(self):
         # Allow the current scene to clean up (e.g., unbind shortcuts)

@@ -6,40 +6,147 @@ from tkinter import font as tkfont
 import config
 
 
+def _center_toplevel(win, parent):
+    win.update_idletasks()
+    width = max(win.winfo_width(), win.winfo_reqwidth())
+    height = max(win.winfo_height(), win.winfo_reqheight())
+    x = max(parent.winfo_rootx() + (parent.winfo_width() - width) // 2, 0)
+    y = max(parent.winfo_rooty() + (parent.winfo_height() - height) // 2, 0)
+    win.geometry(f"{width}x{height}+{x}+{y}")
+
+
 def show_about(parent):
     win = tk.Toplevel(parent)
     win.title("O programie")
     win.transient(parent)
     win.resizable(False, False)
     win.grab_set()
+    win.configure(bg="#f3f4f6")
 
-    frm = ttk.Frame(win, padding=16)
-    frm.pack(fill="both", expand=True)
+    accent = "#d97706"
+    header_bg = "#111827"
+    panel_bg = "#f9fafb"
+    body_fg = "#1f2937"
+    muted_fg = "#6b7280"
+
+    outer = tk.Frame(win, bg="#f3f4f6", padx=18, pady=18)
+    outer.pack(fill="both", expand=True)
+
+    card = tk.Frame(
+        outer,
+        bg=panel_bg,
+        highlightbackground="#d1d5db",
+        highlightthickness=1,
+        bd=0,
+    )
+    card.pack(fill="both", expand=True)
 
     VERSION = (pathlib.Path(__file__).resolve().parents[3] / 'VERSION').read_text().strip()
 
-    ttk.Label(frm, text="Generator list PDF", font=("TkDefaultFont", 12, "bold")).grid(row=0, column=0, sticky="w")
-    ttk.Label(frm, text=f"Wersja: v{VERSION}").grid(row=1, column=0, sticky="w", pady=(6, 0))
-    ttk.Label(frm, text=f"Autor: {config.APP_AUTHOR}").grid(row=2, column=0, sticky="w")
-    ttk.Label(frm, text=f"E-mail: {config.APP_AUTHOR_EMAIL}").grid(row=3, column=0, sticky="w")
+    header = tk.Frame(card, bg=header_bg, padx=20, pady=18)
+    header.pack(fill="x")
 
-    ttk.Separator(frm).grid(row=4, column=0, sticky="ew", pady=10)
+    tk.Label(
+        header,
+        text=config.APP_NAME,
+        bg=header_bg,
+        fg="white",
+        font=("Segoe UI", 16, "bold"),
+        anchor="w",
+    ).pack(fill="x")
+    tk.Label(
+        header,
+        text=config.APP_SUBTITLE,
+        bg=header_bg,
+        fg="#d1d5db",
+        font=("Segoe UI", 10),
+        anchor="w",
+        pady=4,
+    ).pack(fill="x")
 
-    ttk.Label(frm, text="Licencja / informacje:", foreground="#555").grid(row=5, column=0, sticky="w")
-    txt = (
-        "Program do generowania list PDF.\n"
-        "© 2025 – wszelkie prawa zastrzeżone."
-    )
-    ttk.Label(frm, text=txt, justify="left").grid(row=6, column=0, sticky="w")
+    body = tk.Frame(card, bg=panel_bg, padx=20, pady=18)
+    body.pack(fill="both", expand=True)
 
-    btns = ttk.Frame(frm)
-    btns.grid(row=7, column=0, sticky="e", pady=(12, 0))
-    ttk.Button(btns, text="Zamknij", command=win.destroy).pack(side="right")
+    tk.Label(
+        body,
+        text=f"Wersja {VERSION}",
+        bg=panel_bg,
+        fg=accent,
+        font=("Segoe UI", 10, "bold"),
+        anchor="w",
+    ).pack(fill="x")
 
-    win.update_idletasks()
-    x = parent.winfo_rootx() + (parent.winfo_width() - win.winfo_width()) // 2
-    y = parent.winfo_rooty() + (parent.winfo_height() - win.winfo_height()) // 2
-    win.geometry(f"+{x}+{y}")
+    tk.Label(
+        body,
+        text=(
+            "Aplikacja przygotowuje czytelne pliki PDF z wynikami i listami "
+            "zapisanymi w plikach TXT. Usprawnia generowanie dokumentów "
+            "oddziałowych, sekcyjnych oraz dodatkowych zestawień."
+        ),
+        bg=panel_bg,
+        fg=body_fg,
+        font=("Segoe UI", 10),
+        justify="left",
+        wraplength=420,
+        anchor="w",
+        pady=10,
+    ).pack(fill="x")
+
+    meta = tk.Frame(body, bg="#ffffff", padx=14, pady=12)
+    meta.pack(fill="x", pady=(0, 14))
+
+    tk.Label(
+        meta,
+        text="Autor",
+        bg="#ffffff",
+        fg=muted_fg,
+        font=("Segoe UI", 9, "bold"),
+        anchor="w",
+    ).grid(row=0, column=0, sticky="w")
+    tk.Label(
+        meta,
+        text=config.APP_AUTHOR,
+        bg="#ffffff",
+        fg=body_fg,
+        font=("Segoe UI", 10),
+        anchor="w",
+    ).grid(row=1, column=0, sticky="w", pady=(2, 10))
+
+    tk.Label(
+        meta,
+        text="Kontakt",
+        bg="#ffffff",
+        fg=muted_fg,
+        font=("Segoe UI", 9, "bold"),
+        anchor="w",
+    ).grid(row=2, column=0, sticky="w")
+    tk.Label(
+        meta,
+        text=config.APP_AUTHOR_EMAIL,
+        bg="#ffffff",
+        fg=body_fg,
+        font=("Segoe UI", 10),
+        anchor="w",
+    ).grid(row=3, column=0, sticky="w", pady=(2, 0))
+
+    btns = tk.Frame(body, bg=panel_bg)
+    btns.pack(fill="x", pady=(6, 0))
+    tk.Button(
+        btns,
+        text="Zamknij",
+        command=win.destroy,
+        bg="white",
+        fg=body_fg,
+        activebackground="#f3f4f6",
+        activeforeground=body_fg,
+        relief="solid",
+        bd=1,
+        padx=18,
+        pady=6,
+        font=("Segoe UI", 10),
+    ).pack(side="right")
+
+    _center_toplevel(win, parent)
 
 
 def show_changelog(parent):
@@ -48,17 +155,98 @@ def show_changelog(parent):
         messagebox.showwarning("Dziennik zmian", f"Nie znaleziono pliku:\n{path}")
         return
 
+    accent = "#d97706"
+    header_bg = "#111827"
+    panel_bg = "#f9fafb"
+    body_bg = "#f3f4f6"
+    border = "#d1d5db"
+    body_fg = "#1f2937"
+    muted_fg = "#6b7280"
+
     win = tk.Toplevel(parent)
     win.title("Dziennik zmian")
     win.geometry("760x560")
     win.transient(parent)
     win.grab_set()
+    win.configure(bg=body_bg)
 
-    frm = ttk.Frame(win, padding=8)
-    frm.pack(fill="both", expand=True)
+    outer = tk.Frame(win, bg=body_bg, padx=18, pady=18)
+    outer.pack(fill="both", expand=True)
 
-    text = tk.Text(frm, wrap="word", padx=8, pady=8, borderwidth=0)
-    scroll = ttk.Scrollbar(frm, orient="vertical", command=text.yview)
+    card = tk.Frame(
+        outer,
+        bg=panel_bg,
+        highlightbackground=border,
+        highlightthickness=1,
+        bd=0,
+    )
+    card.pack(fill="both", expand=True)
+
+    header = tk.Frame(card, bg=header_bg, padx=20, pady=18)
+    header.pack(fill="x")
+
+    tk.Label(
+        header,
+        text="Dziennik zmian",
+        bg=header_bg,
+        fg="white",
+        font=("Segoe UI", 16, "bold"),
+        anchor="w",
+    ).pack(fill="x")
+    tk.Label(
+        header,
+        text="Historia zmian i usprawnień w aplikacji.",
+        bg=header_bg,
+        fg="#d1d5db",
+        font=("Segoe UI", 10),
+        anchor="w",
+        pady=4,
+    ).pack(fill="x")
+
+    content = tk.Frame(card, bg=panel_bg, padx=18, pady=18)
+    content.pack(fill="both", expand=True)
+
+    topbar = tk.Frame(content, bg=panel_bg)
+    topbar.pack(fill="x", pady=(0, 10))
+
+    tk.Label(
+        topbar,
+        text="CHANGELOG.md",
+        bg=panel_bg,
+        fg=accent,
+        font=("Segoe UI", 9, "bold"),
+        anchor="w",
+    ).pack(side="left")
+    tk.Label(
+        topbar,
+        text="Najnowsze wpisy są widoczne poniżej.",
+        bg=panel_bg,
+        fg=muted_fg,
+        font=("Segoe UI", 9),
+        anchor="e",
+    ).pack(side="right")
+
+    editor_wrap = tk.Frame(
+        content,
+        bg="#ffffff",
+        highlightbackground=border,
+        highlightthickness=1,
+        bd=0,
+    )
+    editor_wrap.pack(fill="both", expand=True)
+
+    text = tk.Text(
+        editor_wrap,
+        wrap="word",
+        padx=14,
+        pady=14,
+        borderwidth=0,
+        relief="flat",
+        bg="#ffffff",
+        fg=body_fg,
+        insertbackground=body_fg,
+    )
+    scroll = ttk.Scrollbar(editor_wrap, orient="vertical", command=text.yview)
     text.configure(yscrollcommand=scroll.set)
     text.pack(side="left", fill="both", expand=True)
     scroll.pack(side="right", fill="y")
@@ -72,13 +260,15 @@ def show_changelog(parent):
     h3.configure(size=base_font.cget("size") + 1, weight="bold")
     mono = tkfont.Font(family="TkFixedFont")
 
-    text.tag_configure("h1", font=h1, spacing1=6, spacing3=6)
-    text.tag_configure("h2", font=h2, spacing1=6, spacing3=4)
-    text.tag_configure("h3", font=h3, spacing1=4, spacing3=2)
+    text.configure(font=("Segoe UI", 10))
+
+    text.tag_configure("h1", font=h1, foreground=body_fg, spacing1=10, spacing3=8)
+    text.tag_configure("h2", font=h2, foreground=body_fg, spacing1=10, spacing3=5)
+    text.tag_configure("h3", font=h3, foreground=body_fg, spacing1=6, spacing3=3)
     text.tag_configure("li", lmargin1=20, lmargin2=40)
-    text.tag_configure("sep", foreground="#888")
-    text.tag_configure("code", font=mono, background="#f2f2f2")
-    text.tag_configure("bold", font=h3)
+    text.tag_configure("sep", foreground="#9ca3af", spacing1=6, spacing3=6)
+    text.tag_configure("code", font=mono, background="#f3f4f6", foreground=body_fg)
+    text.tag_configure("bold", font=h3, foreground=body_fg)
 
     md = path.read_text(encoding="utf-8").splitlines()
 
@@ -117,4 +307,23 @@ def show_changelog(parent):
         else:
             insert_with_codes(line)
 
+    footer = tk.Frame(content, bg=panel_bg)
+    footer.pack(fill="x", pady=(12, 0))
+
+    tk.Button(
+        footer,
+        text="Zamknij",
+        command=win.destroy,
+        bg="white",
+        fg=body_fg,
+        activebackground="#f3f4f6",
+        activeforeground=body_fg,
+        relief="solid",
+        bd=1,
+        padx=18,
+        pady=6,
+        font=("Segoe UI", 10),
+    ).pack(side="right")
+
     text.configure(state="disabled")
+    _center_toplevel(win, parent)
