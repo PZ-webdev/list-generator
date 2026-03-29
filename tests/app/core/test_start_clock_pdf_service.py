@@ -44,3 +44,37 @@ def test_wrap_page_segments_creates_separate_pages():
     out = s._wrap_page_segments("A<div class=\"page-break\"></div>B")
     assert out.count('<div class="page">') == 2
     assert 'page-inner' in out
+
+
+def test_strip_emphasis_codes_removes_start_clock_highlight_markup():
+    s = StartClockPdfService()
+    src = "Hodowca -\x1bG\x1bW1 413\x1bH\x1bW0- PARUCH ADAM\n"
+    out = s._strip_emphasis_codes(src)
+    assert '\x1b' not in out
+    assert "Hodowca - 413- PARUCH ADAM\n" == out
+
+
+def test_normalize_comp_column_removes_escape_markup_from_table_rows():
+    s = StartClockPdfService()
+    src = "│ G│PL-496-20--6613│        │01│          │\x1bG\x1bW1  1\x1bH\x1bW0│   │       │                 │\n"
+    out = s._normalize_comp_column(src)
+    assert '\x1bG' not in out
+    assert '\x1bW1' not in out
+    assert '│  1   │' in out
+
+
+def test_normalize_comp_column_handles_non_pl_table_rows():
+    s = StartClockPdfService()
+    src = "│ G│SK-2401-20-1425│        │01│          │\x1bG\x1bW1  4\x1bH\x1bW0│   │       │                 │\n"
+    out = s._normalize_comp_column(src)
+    assert '\x1bG' not in out
+    assert '│  4   │' in out
+
+
+def test_get_output_filename_is_start_clock_specific(tmp_path):
+    from app.dto.branch import Branch
+
+    s = StartClockPdfService()
+    branch = Branch(id='1', name='B', number='123', input=str(tmp_path), output=str(tmp_path))
+    out = s.get_output_filename(branch, str(tmp_path))
+    assert out == str(tmp_path / 'LISTA STARTOWO-ZEGAROWA.pdf')

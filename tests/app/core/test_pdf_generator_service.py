@@ -8,10 +8,8 @@ def make_pdf_service(monkeypatch):
     # Mock pdfkit configuration and from_string
     import app.core.pdf_generator_service as mod
     calls = []
-    monkeypatch.setattr('shutil.which', lambda x: '/usr/bin/wkhtmltopdf')
-    monkeypatch.setattr(mod, 'pdfkit', SimpleNamespace(
-        configuration=lambda wkhtmltopdf=None: object(),
-        from_string=lambda html, output_path, configuration=None: calls.append((html, output_path))
+    monkeypatch.setattr(mod, 'HtmlPdfRenderer', lambda: SimpleNamespace(
+        render=lambda html, output_path: calls.append((html, output_path))
     ))
     # Build service
     svc = mod.PdfGeneratorService()
@@ -75,6 +73,7 @@ def test_generate_single_pdf_uses_default_dir(monkeypatch, tmp_path):
 
 def test_generate_pdf_to_path_calls_pdfkit(monkeypatch, tmp_path):
     svc, calls = make_pdf_service(monkeypatch)
+    monkeypatch.setattr(svc.start_clock_service, 'build_html', lambda *_: (_ for _ in ()).throw(AssertionError('unexpected start-clock call')))
     # Mock settings for output file names
     monkeypatch.setattr('app.dto.settings_dto.SettingsDTO.from_json', lambda: SimpleNamespace(
         filename_branch='OPEN_{BRANCH}_{DATE}.pdf',
@@ -97,7 +96,7 @@ def test_generate_pdf_to_path_calls_pdfkit(monkeypatch, tmp_path):
 
 def test_generate_start_clock_pdf_to_path_calls_pdfkit(monkeypatch, tmp_path):
     svc, calls = make_pdf_service(monkeypatch)
-    txt = tmp_path / 'LOT_M_01.001' / 'DRLSTZEG.TXT'
+    txt = tmp_path / 'LOT_M_01.001' / '--DRLSTZEG.TXT'
     os.makedirs(txt.parent, exist_ok=True)
     txt.write_bytes('ABC'.encode('cp852'))
 

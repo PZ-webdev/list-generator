@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 import config
 import tkinter as tk
 from tkinter import filedialog, ttk
@@ -17,6 +18,30 @@ from app.utils.ui_state import UIStateStore
 
 
 class MainScene:
+    _POLISH_WEEKDAYS = (
+        'Poniedziałek',
+        'Wtorek',
+        'Środa',
+        'Czwartek',
+        'Piątek',
+        'Sobota',
+        'Niedziela',
+    )
+    _POLISH_MONTHS = (
+        'stycznia',
+        'lutego',
+        'marca',
+        'kwietnia',
+        'maja',
+        'czerwca',
+        'lipca',
+        'sierpnia',
+        'września',
+        'października',
+        'listopada',
+        'grudnia',
+    )
+
     def __init__(self, app, branches_file=config.BRANCHES_FILE):
         self.app = app
         self.frame = tk.Frame(app.main_frame)
@@ -45,23 +70,52 @@ class MainScene:
         self.progress = None
 
     def build(self):
-        header = tk.Frame(self.frame)
-        header.pack(fill='x', padx=10, pady=(10, 6))
+        header = tk.Frame(
+            self.frame,
+            bg='#f7f9fc',
+            highlightbackground='#b8c4d6',
+            highlightthickness=1,
+            bd=0,
+            padx=12,
+            pady=10,
+        )
+        header.pack(fill='x', padx=10, pady=(10, 8))
+
+        accent = tk.Frame(header, bg='#2f6ea5', height=3)
+        accent.pack(fill='x', side='top', pady=(0, 10))
+
+        content = tk.Frame(header, bg='#f7f9fc')
+        content.pack(fill='x')
+
+        title_wrap = tk.Frame(content, bg='#f7f9fc')
+        title_wrap.pack(side='left', anchor='w')
+
+        tk.Label(
+            title_wrap,
+            text=self._today_text(),
+            font=('Arial', 10),
+            foreground='#2f3b52',
+            anchor='w',
+            bg='#f7f9fc',
+        ).pack(anchor='w')
 
         self.title_label = tk.Label(
-            header,
+            title_wrap,
             text=self._title_text(),
-            font=('Arial', 12, 'bold')
+            font=('Arial', 12, 'bold'),
+            anchor='w',
+            bg='#f7f9fc',
+            fg='#142235',
         )
-        self.title_label.pack(side='left')
+        self.title_label.pack(anchor='w', pady=(2, 0))
 
         btn_cfg = tk.Button(
-            header,
-            text='Zarządzaj oddziałami',
+            content,
+            text='Oddziały',
             command=self.app.show_branches_scene
         )
         btn_cfg.pack(side='right')
-        Tooltip(btn_cfg, "Przejdź do dodawania/edycji oddziałów")
+        Tooltip(btn_cfg, "Przejdź do zarządzania oddziałami")
 
         notebook = ttk.Notebook(self.frame)
         notebook.pack(fill='both', expand=True, padx=10, pady=10)
@@ -141,7 +195,7 @@ class MainScene:
             command=self._on_generate_start_clock,
         )
         start_clock_btn.grid(row=1, column=0, padx=8, pady=(0, 4), sticky='w')
-        Tooltip(start_clock_btn, "Wygeneruj osobny PDF z pliku DANE_GL/DRLSTZEG.TXT wybranego oddziału")
+        Tooltip(start_clock_btn, "Wygeneruj PDF z pliku DANE_GL/DRLSTZEG.TXT wybranego oddziału")
 
         ttk.Label(
             start_clock_frame,
@@ -258,9 +312,7 @@ class MainScene:
     def generate_start_clock_for_branch(self, branch: Branch):
         output_path = self.lot_pdf_service.generate_start_clock_pdf_for_lot(branch)
         if output_path:
-            notifier.show_success(
-                f'Wygenerowano listę startowo-zegarową\nPlik:\n{output_path}'
-            )
+            notifier.show_success('Wygenerowano listę startowo-zegarową.')
 
     def generate_single_file(self):
         file_path = filedialog.askopenfilename(filetypes=[('Text Files', ('*.TXT', '*.txt'))])
@@ -319,6 +371,12 @@ class MainScene:
     def _title_text(self) -> str:
         return f"Loty gołębi {'STARYCH' if self.is_old_pigeon else 'MŁODYCH'}"
 
+    def _today_text(self) -> str:
+        today = datetime.today()
+        weekday = self._POLISH_WEEKDAYS[today.weekday()]
+        month = self._POLISH_MONTHS[today.month - 1]
+        return f'{weekday}, {today.day} {month}'
+
     def _format_branch_option(self, branch: Branch) -> str:
         return f"{branch.number} {branch.name}"
 
@@ -332,7 +390,7 @@ class MainScene:
     def _update_start_clock_output_label(self) -> None:
         try:
             branch = self._get_selected_start_clock_branch()
-            output_path = self.lot_pdf_service.pdf_generator.get_start_clock_output_filename(
+            output_path = self.lot_pdf_service.pdf_generator.start_clock_service.get_output_filename(
                 branch=branch,
                 output_dir=branch.output,
             )

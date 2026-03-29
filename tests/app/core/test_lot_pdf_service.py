@@ -81,13 +81,13 @@ def test_get_start_clock_file_and_generate_pdf(tmp_path, monkeypatch):
     out = tmp_path / 'OUT'
     data_dir = inp / 'DANE_GL'
     data_dir.mkdir(parents=True)
-    (data_dir / 'DRLSTZEG.TXT').write_text('a')
+    (data_dir / '--DRLSTZEG.TXT').write_text('a')
 
     branch = Branch(id='1', name='B', number='100', input=str(inp), output=str(out))
     monkeypatch.setattr('app.utils.notifier.show_warning', lambda *a, **k: None)
 
     found = svc.get_start_clock_file(str(inp))
-    assert found and found.endswith('DRLSTZEG.TXT')
+    assert found and found.endswith('--DRLSTZEG.TXT')
 
     output_path = svc.generate_start_clock_pdf_for_lot(branch)
     assert output_path == str(out)
