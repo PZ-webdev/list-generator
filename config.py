@@ -1,7 +1,7 @@
 # Global
 from pathlib import Path
 
-WINDOW_TITLE = "Generator list PDF"
+WINDOW_TITLE = "Wyniki TXT do PDF"
 WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 700
 WINDOW_RESIZABLE = False
@@ -19,8 +19,10 @@ LOG_LEVEL = 'INFO'
 LOG_BACKUP_COUNT = 30
 
 # About app
-APP_AUTHOR = "Patryk Zaprzała"
-APP_AUTHOR_EMAIL = "pzaprzala@gmail.com"
+APP_NAME = "Wyniki TXT do PDF"
+APP_SUBTITLE = "Generator list i zestawień PDF z plików tekstowych"
+APP_AUTHOR = "PZ-webdev"
+APP_AUTHOR_EMAIL = "pzwebdev@outlook.com"
 
 # Files
 CHANGELOG_FILE = BASE_DIR / "CHANGELOG.md"

@@ -81,6 +81,14 @@ class SettingsScene:
             self.template_vars[key] = var
             ttk.Entry(frame_templates, textvariable=var, width=50).grid(row=i, column=1, padx=5, pady=3)
 
+        ttk.Label(
+            frame_templates,
+            text="Zmienne: {BRANCH}=oddział, {DATE}=RRRRMMDD, {SECTION}=sekcja.",
+            foreground="#555",
+            wraplength=520,
+            justify="left",
+        ).grid(row=len(labels), column=0, columnspan=2, sticky='w', padx=5, pady=(4, 2))
+
         frame_files = ttk.LabelFrame(lists_tab, text="Kolejność doklejanych plików")
         frame_files.grid(row=2, column=0, padx=20, pady=10, sticky='nsew')
 
