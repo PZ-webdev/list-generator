@@ -36,6 +36,8 @@ class MainScene:
             master=self.frame,
             value=RankingService.DEFAULT_TOP_LIMIT,
         )
+        self.start_clock_branch_var = tk.StringVar(master=self.frame, value='')
+        self.start_clock_output_var = tk.StringVar(master=self.frame, value='')
 
         self.is_old_pigeon = self._load_is_old()
 
@@ -112,6 +114,44 @@ class MainScene:
         single_btn.grid(row=0, column=0, padx=(0, 10), pady=(0, 6), sticky="w")
         Tooltip(single_btn, "Wybierz pojedynczy plik TXT i wygeneruj PDF")
 
+        start_clock_frame = ttk.LabelFrame(other_inner, text="Lista startowo-zegarowa")
+        start_clock_frame.pack(fill='x', padx=10, pady=10)
+
+        branches = self.branch_service.get_all()
+        branch_options = [self._format_branch_option(branch) for branch in branches]
+        if branch_options and not self.start_clock_branch_var.get():
+            self.start_clock_branch_var.set(branch_options[0])
+
+        branch_frame = ttk.Frame(start_clock_frame)
+        branch_frame.grid(row=0, column=0, padx=8, pady=(8, 4), sticky='w')
+        ttk.Label(branch_frame, text="Oddział:").grid(row=0, column=0, padx=(0, 6))
+        branch_combo = ttk.Combobox(
+            branch_frame,
+            textvariable=self.start_clock_branch_var,
+            values=branch_options,
+            width=28,
+            state='readonly'
+        )
+        branch_combo.grid(row=0, column=1, sticky='w')
+        branch_combo.bind("<<ComboboxSelected>>", lambda _event: self._update_start_clock_output_label())
+
+        start_clock_btn = ttk.Button(
+            start_clock_frame,
+            text="Generuj",
+            command=self._on_generate_start_clock,
+        )
+        start_clock_btn.grid(row=1, column=0, padx=8, pady=(0, 4), sticky='w')
+        Tooltip(start_clock_btn, "Wygeneruj osobny PDF z pliku DANE_GL/DRLSTZEG.TXT wybranego oddziału")
+
+        ttk.Label(
+            start_clock_frame,
+            textvariable=self.start_clock_output_var,
+            foreground="#555",
+            justify='left',
+            wraplength=520,
+        ).grid(row=2, column=0, padx=8, pady=(0, 8), sticky='w')
+        self._update_start_clock_output_label()
+
         ranking_frame = ttk.LabelFrame(other_inner, text="Ranking hodowców")
         ranking_frame.pack(fill='x', padx=10, pady=10)
 
@@ -174,6 +214,14 @@ class MainScene:
             notifier.show_error("Nie udało się utworzyć katalogu lotu.")
             log_error(f"Błąd tworzenia katalogów: {e}")
 
+    def _on_generate_start_clock(self):
+        try:
+            branch = self._get_selected_start_clock_branch()
+            self.generate_start_clock_for_branch(branch)
+        except Exception as e:
+            log_error(f'Błąd generowania listy startowo-zegarowej: {e}')
+            notifier.show_error(str(e))
+
     def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool, league2_list: bool):
         if not lot_number.strip().isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
@@ -206,6 +254,13 @@ class MainScene:
         except Exception:
             pass
         self.progress.pack_forget()
+
+    def generate_start_clock_for_branch(self, branch: Branch):
+        output_path = self.lot_pdf_service.generate_start_clock_pdf_for_lot(branch)
+        if output_path:
+            notifier.show_success(
+                f'Wygenerowano listę startowo-zegarową\nPlik:\n{output_path}'
+            )
 
     def generate_single_file(self):
         file_path = filedialog.askopenfilename(filetypes=[('Text Files', ('*.TXT', '*.txt'))])
@@ -263,5 +318,26 @@ class MainScene:
 
     def _title_text(self) -> str:
         return f"Loty gołębi {'STARYCH' if self.is_old_pigeon else 'MŁODYCH'}"
+
+    def _format_branch_option(self, branch: Branch) -> str:
+        return f"{branch.number} {branch.name}"
+
+    def _get_selected_start_clock_branch(self) -> Branch:
+        selected = (self.start_clock_branch_var.get() or '').strip()
+        for branch in self.branch_service.get_all():
+            if self._format_branch_option(branch) == selected:
+                return branch
+        raise ValueError('Wybierz oddział do wygenerowania listy startowo-zegarowej.')
+
+    def _update_start_clock_output_label(self) -> None:
+        try:
+            branch = self._get_selected_start_clock_branch()
+            output_path = self.lot_pdf_service.pdf_generator.get_start_clock_output_filename(
+                branch=branch,
+                output_dir=branch.output,
+            )
+            self.start_clock_output_var.set(f"Zapis do: {output_path}")
+        except Exception:
+            self.start_clock_output_var.set("Zapis do: -")
 
     # (brak) – przeniesione do SettingsScene

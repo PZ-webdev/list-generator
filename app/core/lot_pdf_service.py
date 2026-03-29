@@ -54,6 +54,15 @@ class LotPdfService:
         log_info(f'Znaleziono {len(matching_files)} plików TXT typu LKON_{self.suffix} w {directory}')
         return matching_files
 
+    def get_start_clock_file(self, input_dir: str) -> Optional[str]:
+        data_dir = os.path.join(input_dir, 'DANE_GL')
+        path = os.path.join(data_dir, 'DRLSTZEG.TXT')
+        if os.path.isfile(path):
+            log_info(f'Znaleziono plik listy startowo-zegarowej: {path}')
+            return path
+        log_warning(f'Nie znaleziono pliku DRLSTZEG.TXT w {data_dir}')
+        return None
+
     def generate_pdfs_for_lot(
             self,
             branch: Branch,
@@ -117,6 +126,28 @@ class LotPdfService:
         notifier.show_success(
             f"Wygenerowano listy \nLot nr.: {lot_number}\nOddział: {branch.name}"
         )
+
+    def generate_start_clock_pdf_for_lot(self, branch: Branch) -> Optional[str]:
+        input_dir = branch.input
+        output_dir = branch.output
+        os.makedirs(output_dir, exist_ok=True)
+
+        start_clock_path = self.get_start_clock_file(input_dir)
+        if not start_clock_path:
+            notifier.show_warning('Brak pliku DRLSTZEG.TXT w katalogu DANE_GL')
+            return None
+
+        try:
+            output_path = self.pdf_generator.generate_start_clock_pdf_to_path(
+                branch=branch,
+                file_path=start_clock_path,
+                output_dir=output_dir,
+            )
+            log_info(f'Wygenerowano listę startowo-zegarową do: {output_path}')
+            return output_path
+        except Exception as e:
+            log_error(f'Błąd generowania listy startowo-zegarowej dla {start_clock_path}: {e}')
+            raise
 
     def generate_league2_only_for_lot(
             self,

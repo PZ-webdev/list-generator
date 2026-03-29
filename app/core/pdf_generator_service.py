@@ -32,13 +32,7 @@ class PdfGeneratorService:
 
     def generate_single_pdf(self, file_path: str) -> str:
         raw_content = read_file_cp852(file_path)
-
-        html_ready = self.text_service.transform_control_codes(raw_content)
-        html_ready = self.text_service.center_only_first_page(html_ready)
-
-        template_path = resource_path('app/templates/pdf_template.html')
-        html_template = read_file_utf8(template_path)
-        html_content = html_template.replace('{{ content }}', html_ready)
+        html_content = self._build_html_from_raw(raw_content)
 
         default_output_path = os.path.splitext(file_path)[0] + '.pdf'
 
@@ -54,6 +48,22 @@ class PdfGeneratorService:
         except Exception:
             output_path = default_output_path
 
+        pdfkit.from_string(html_content, output_path, configuration=self.config)
+        return output_path
+
+    def generate_start_clock_pdf_to_path(
+            self,
+            branch: Branch,
+            file_path: str,
+            output_dir: str
+    ) -> str:
+        raw_content = read_file_cp852(file_path)
+        html_content = self._build_html_from_raw(raw_content)
+
+        output_path = self.get_start_clock_output_filename(
+            branch=branch,
+            output_dir=output_dir,
+        )
         pdfkit.from_string(html_content, output_path, configuration=self.config)
         return output_path
 
@@ -181,6 +191,10 @@ class PdfGeneratorService:
             filled_html_masked = html_template.replace('{{ content }}', html_ready_masked)
             pdfkit.from_string(filled_html_masked, closed_list_path, configuration=self.config)
 
+    def get_start_clock_output_filename(self, branch: Branch, output_dir: str) -> str:
+        filename = "LISTA STARTOWO-ZEGAROWA.pdf"
+        return os.path.join(output_dir, filename)
+
     def get_output_filenames(self, branch: Branch, file_path: str, output_dir: str) -> Tuple[str, str]:
         settings = SettingsDTO.from_json()
         date_str = datetime.today().strftime('%Y%m%d')
@@ -305,3 +319,11 @@ class PdfGeneratorService:
             league_masked = self.text_service.mask_pigeon_rings(league_html)
             filled_html_masked = html_template.replace('{{ content }}', league_masked)
             pdfkit.from_string(filled_html_masked, out_league_closed, configuration=self.config)
+
+    def _build_html_from_raw(self, raw_content: str) -> str:
+        html_ready = self.text_service.transform_control_codes(raw_content)
+        html_ready = self.text_service.center_only_first_page(html_ready)
+
+        template_path = resource_path('app/templates/pdf_template.html')
+        html_template = read_file_utf8(template_path)
+        return html_template.replace('{{ content }}', html_ready)

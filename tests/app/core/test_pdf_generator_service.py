@@ -93,3 +93,20 @@ def test_generate_pdf_to_path_calls_pdfkit(monkeypatch, tmp_path):
     svc.generate_pdf_to_path(branch, str(txt), str(out_dir), additional_list=False, rating_list=False)
     # One PDF generated
     assert len(calls) == 1
+
+
+def test_generate_start_clock_pdf_to_path_calls_pdfkit(monkeypatch, tmp_path):
+    svc, calls = make_pdf_service(monkeypatch)
+    txt = tmp_path / 'LOT_M_01.001' / 'DRLSTZEG.TXT'
+    os.makedirs(txt.parent, exist_ok=True)
+    txt.write_bytes('ABC'.encode('cp852'))
+
+    from app.dto.branch import Branch
+    branch = Branch(id='1', name='B', number='123', input=str(tmp_path), output=str(tmp_path))
+    out_dir = tmp_path / 'out'
+    out_dir.mkdir()
+
+    output_path = svc.generate_start_clock_pdf_to_path(branch, str(txt), str(out_dir))
+    assert len(calls) == 1
+    assert os.path.dirname(output_path) == str(out_dir)
+    assert os.path.basename(output_path) == 'LISTA STARTOWO-ZEGAROWA.pdf'
