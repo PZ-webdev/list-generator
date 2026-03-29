@@ -1,0 +1,40 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .content {
+            font-family: 'DejaVu Sans Mono', monospace;
+            font-size: 12pt;
+        }
+        h1 { margin: 0; text-align: center; }
+        h1:nth-of-type(2) { margin-top: 12mm; }
+        .start-clock-title {
+            display: block;
+            text-align: center;
+            font-weight: bold;
+        }
+        .breeder-strong {
+            font-weight: bold;
+        }
+        .page {
+            white-space: pre;
+            width: 100%;
+            text-align: center;
+        }
+        .page-inner {
+            display: inline-block;
+            text-align: left;
+        }
+        .page + .page {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+<div class="content">{{ content }}</div>
+</body>
+</html>

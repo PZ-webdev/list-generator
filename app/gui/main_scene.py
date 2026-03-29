@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime
 import config
 import tkinter as tk
 from tkinter import filedialog, ttk
@@ -17,6 +18,30 @@ from app.utils.ui_state import UIStateStore
 
 
 class MainScene:
+    _POLISH_WEEKDAYS = (
+        'Poniedziałek',
+        'Wtorek',
+        'Środa',
+        'Czwartek',
+        'Piątek',
+        'Sobota',
+        'Niedziela',
+    )
+    _POLISH_MONTHS = (
+        'stycznia',
+        'lutego',
+        'marca',
+        'kwietnia',
+        'maja',
+        'czerwca',
+        'lipca',
+        'sierpnia',
+        'września',
+        'października',
+        'listopada',
+        'grudnia',
+    )
+
     def __init__(self, app, branches_file=config.BRANCHES_FILE):
         self.app = app
         self.frame = tk.Frame(app.main_frame)
@@ -36,6 +61,8 @@ class MainScene:
             master=self.frame,
             value=RankingService.DEFAULT_TOP_LIMIT,
         )
+        self.start_clock_branch_var = tk.StringVar(master=self.frame, value='')
+        self.start_clock_output_var = tk.StringVar(master=self.frame, value='')
 
         self.is_old_pigeon = self._load_is_old()
 
@@ -43,23 +70,52 @@ class MainScene:
         self.progress = None
 
     def build(self):
-        header = tk.Frame(self.frame)
-        header.pack(fill='x', padx=10, pady=(10, 6))
+        header = tk.Frame(
+            self.frame,
+            bg='#f7f9fc',
+            highlightbackground='#b8c4d6',
+            highlightthickness=1,
+            bd=0,
+            padx=12,
+            pady=10,
+        )
+        header.pack(fill='x', padx=10, pady=(10, 8))
+
+        accent = tk.Frame(header, bg='#2f6ea5', height=3)
+        accent.pack(fill='x', side='top', pady=(0, 10))
+
+        content = tk.Frame(header, bg='#f7f9fc')
+        content.pack(fill='x')
+
+        title_wrap = tk.Frame(content, bg='#f7f9fc')
+        title_wrap.pack(side='left', anchor='w')
+
+        tk.Label(
+            title_wrap,
+            text=self._today_text(),
+            font=('Arial', 10),
+            foreground='#2f3b52',
+            anchor='w',
+            bg='#f7f9fc',
+        ).pack(anchor='w')
 
         self.title_label = tk.Label(
-            header,
+            title_wrap,
             text=self._title_text(),
-            font=('Arial', 12, 'bold')
+            font=('Arial', 12, 'bold'),
+            anchor='w',
+            bg='#f7f9fc',
+            fg='#142235',
         )
-        self.title_label.pack(side='left')
+        self.title_label.pack(anchor='w', pady=(2, 0))
 
         btn_cfg = tk.Button(
-            header,
-            text='Zarządzaj oddziałami',
+            content,
+            text='Oddziały',
             command=self.app.show_branches_scene
         )
         btn_cfg.pack(side='right')
-        Tooltip(btn_cfg, "Przejdź do dodawania/edycji oddziałów")
+        Tooltip(btn_cfg, "Przejdź do zarządzania oddziałami")
 
         notebook = ttk.Notebook(self.frame)
         notebook.pack(fill='both', expand=True, padx=10, pady=10)
@@ -111,6 +167,44 @@ class MainScene:
         )
         single_btn.grid(row=0, column=0, padx=(0, 10), pady=(0, 6), sticky="w")
         Tooltip(single_btn, "Wybierz pojedynczy plik TXT i wygeneruj PDF")
+
+        start_clock_frame = ttk.LabelFrame(other_inner, text="Lista startowo-zegarowa")
+        start_clock_frame.pack(fill='x', padx=10, pady=10)
+
+        branches = self.branch_service.get_all()
+        branch_options = [self._format_branch_option(branch) for branch in branches]
+        if branch_options and not self.start_clock_branch_var.get():
+            self.start_clock_branch_var.set(branch_options[0])
+
+        branch_frame = ttk.Frame(start_clock_frame)
+        branch_frame.grid(row=0, column=0, padx=8, pady=(8, 4), sticky='w')
+        ttk.Label(branch_frame, text="Oddział:").grid(row=0, column=0, padx=(0, 6))
+        branch_combo = ttk.Combobox(
+            branch_frame,
+            textvariable=self.start_clock_branch_var,
+            values=branch_options,
+            width=28,
+            state='readonly'
+        )
+        branch_combo.grid(row=0, column=1, sticky='w')
+        branch_combo.bind("<<ComboboxSelected>>", lambda _event: self._update_start_clock_output_label())
+
+        start_clock_btn = ttk.Button(
+            start_clock_frame,
+            text="Generuj",
+            command=self._on_generate_start_clock,
+        )
+        start_clock_btn.grid(row=1, column=0, padx=8, pady=(0, 4), sticky='w')
+        Tooltip(start_clock_btn, "Wygeneruj PDF z pliku DANE_GL/DRLSTZEG.TXT wybranego oddziału")
+
+        ttk.Label(
+            start_clock_frame,
+            textvariable=self.start_clock_output_var,
+            foreground="#555",
+            justify='left',
+            wraplength=520,
+        ).grid(row=2, column=0, padx=8, pady=(0, 8), sticky='w')
+        self._update_start_clock_output_label()
 
         ranking_frame = ttk.LabelFrame(other_inner, text="Ranking hodowców")
         ranking_frame.pack(fill='x', padx=10, pady=10)
@@ -174,6 +268,14 @@ class MainScene:
             notifier.show_error("Nie udało się utworzyć katalogu lotu.")
             log_error(f"Błąd tworzenia katalogów: {e}")
 
+    def _on_generate_start_clock(self):
+        try:
+            branch = self._get_selected_start_clock_branch()
+            self.generate_start_clock_for_branch(branch)
+        except Exception as e:
+            log_error(f'Błąd generowania listy startowo-zegarowej: {e}')
+            notifier.show_error(str(e))
+
     def generate_for_branch(self, branch: Branch, lot_number: str, additional_list: bool, rating_list: bool, league2_list: bool):
         if not lot_number.strip().isdigit():
             notifier.show_warning('Podaj poprawny numer lotu!')
@@ -206,6 +308,11 @@ class MainScene:
         except Exception:
             pass
         self.progress.pack_forget()
+
+    def generate_start_clock_for_branch(self, branch: Branch):
+        output_path = self.lot_pdf_service.generate_start_clock_pdf_for_lot(branch)
+        if output_path:
+            notifier.show_success('Wygenerowano listę startowo-zegarową.')
 
     def generate_single_file(self):
         file_path = filedialog.askopenfilename(filetypes=[('Text Files', ('*.TXT', '*.txt'))])
@@ -263,5 +370,32 @@ class MainScene:
 
     def _title_text(self) -> str:
         return f"Loty gołębi {'STARYCH' if self.is_old_pigeon else 'MŁODYCH'}"
+
+    def _today_text(self) -> str:
+        today = datetime.today()
+        weekday = self._POLISH_WEEKDAYS[today.weekday()]
+        month = self._POLISH_MONTHS[today.month - 1]
+        return f'{weekday}, {today.day} {month}'
+
+    def _format_branch_option(self, branch: Branch) -> str:
+        return f"{branch.number} {branch.name}"
+
+    def _get_selected_start_clock_branch(self) -> Branch:
+        selected = (self.start_clock_branch_var.get() or '').strip()
+        for branch in self.branch_service.get_all():
+            if self._format_branch_option(branch) == selected:
+                return branch
+        raise ValueError('Wybierz oddział do wygenerowania listy startowo-zegarowej.')
+
+    def _update_start_clock_output_label(self) -> None:
+        try:
+            branch = self._get_selected_start_clock_branch()
+            output_path = self.lot_pdf_service.pdf_generator.start_clock_service.get_output_filename(
+                branch=branch,
+                output_dir=branch.output,
+            )
+            self.start_clock_output_var.set(f"Zapis do: {output_path}")
+        except Exception:
+            self.start_clock_output_var.set("Zapis do: -")
 
     # (brak) – przeniesione do SettingsScene

@@ -12,6 +12,10 @@ class DummyPdfGen:
     def generate_pdf_to_path(self, *args, **kwargs):
         self.calls.append((args, kwargs))
 
+    def generate_start_clock_pdf_to_path(self, *args, **kwargs):
+        self.calls.append((args, kwargs))
+        return kwargs.get('output_dir', '')
+
 
 def test_get_matching_lot_dir_and_txt_files(tmp_path, monkeypatch):
     # Force young pigeons -> suffix M
@@ -66,3 +70,26 @@ def test_generate_pdfs_for_lot_happy_path(tmp_path, monkeypatch):
 
     assert len(dummy.calls) == 1
     assert calls and calls[-1][0] == calls[-1][1] == 1
+
+
+def test_get_start_clock_file_and_generate_pdf(tmp_path, monkeypatch):
+    monkeypatch.setattr('app.core.lot_pdf_service._read_is_old_global', lambda: False)
+    dummy = DummyPdfGen()
+    svc = LotPdfService(dummy)
+
+    inp = tmp_path / 'INP'
+    out = tmp_path / 'OUT'
+    data_dir = inp / 'DANE_GL'
+    data_dir.mkdir(parents=True)
+    (data_dir / '--DRLSTZEG.TXT').write_text('a')
+
+    branch = Branch(id='1', name='B', number='100', input=str(inp), output=str(out))
+    monkeypatch.setattr('app.utils.notifier.show_warning', lambda *a, **k: None)
+
+    found = svc.get_start_clock_file(str(inp))
+    assert found and found.endswith('--DRLSTZEG.TXT')
+
+    output_path = svc.generate_start_clock_pdf_for_lot(branch)
+    assert output_path == str(out)
+    assert len(dummy.calls) == 1
+    assert dummy.calls[0][1]['output_dir'] == str(out)

@@ -2,10 +2,8 @@ import os
 from datetime import datetime
 from typing import Tuple
 
-import pdfkit
-import shutil
-import platform
-
+from app.core.html_pdf_renderer import HtmlPdfRenderer
+from app.core.start_clock_pdf_service import StartClockPdfService
 from app.core.text_processing_service import TextProcessingService
 from app.dto.branch import Branch
 from app.dto.settings_dto import SettingsDTO
@@ -16,29 +14,12 @@ from app.utils.resource_helper import resource_path
 class PdfGeneratorService:
     def __init__(self):
         self.text_service = TextProcessingService()
-        self.config = pdfkit.configuration(wkhtmltopdf=self._get_wkhtmltopdf_path())
-
-    def _get_wkhtmltopdf_path(self) -> str:
-        path = shutil.which('wkhtmltopdf')
-        if path:
-            return path
-
-        if platform.system() == 'Windows':
-            default_win_path = 'C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe'
-            if os.path.exists(default_win_path):
-                return default_win_path
-
-        raise FileNotFoundError('Nie znaleziono wkhtmltopdf. Dodaj go do PATH lub podaj ręczną ścieżkę.')
+        self.start_clock_service = StartClockPdfService()
+        self.renderer = HtmlPdfRenderer()
 
     def generate_single_pdf(self, file_path: str) -> str:
         raw_content = read_file_cp852(file_path)
-
-        html_ready = self.text_service.transform_control_codes(raw_content)
-        html_ready = self.text_service.center_only_first_page(html_ready)
-
-        template_path = resource_path('app/templates/pdf_template.html')
-        html_template = read_file_utf8(template_path)
-        html_content = html_template.replace('{{ content }}', html_ready)
+        html_content = self._build_html_from_raw(raw_content)
 
         default_output_path = os.path.splitext(file_path)[0] + '.pdf'
 
@@ -54,7 +35,19 @@ class PdfGeneratorService:
         except Exception:
             output_path = default_output_path
 
-        pdfkit.from_string(html_content, output_path, configuration=self.config)
+        self.renderer.render(html_content, output_path)
+        return output_path
+
+    def generate_start_clock_pdf_to_path(
+            self,
+            branch: Branch,
+            file_path: str,
+            output_dir: str
+    ) -> str:
+        raw_content = read_file_cp852(file_path)
+        html_content = self.start_clock_service.build_html(raw_content)
+        output_path = self.start_clock_service.get_output_filename(branch, output_dir)
+        self.renderer.render(html_content, output_path)
         return output_path
 
     def generate_pdf_to_path(
@@ -66,6 +59,8 @@ class PdfGeneratorService:
             rating_list: bool,
             league2_list: bool = False
     ) -> None:
+        # Results-only path: standard branch/section PDFs must stay independent
+        # from DRLSTZEG-specific formatting and templates.
         # Determine if this is a section-level file (skip II-LIGA for sections)
         # Check any ancestor up to lot root for names like 'SEKCJA.*'
         current_dir_scan = os.path.dirname(file_path)
@@ -174,12 +169,12 @@ class PdfGeneratorService:
         filled_html = html_template.replace('{{ content }}', final_html)
 
         output_pdf_path, closed_list_path = self.get_output_filenames(branch, file_path, output_dir)
-        pdfkit.from_string(filled_html, output_pdf_path, configuration=self.config)
+        self.renderer.render(filled_html, output_pdf_path)
 
         if additional_list:
             html_ready_masked = self.text_service.mask_pigeon_rings(final_html)
             filled_html_masked = html_template.replace('{{ content }}', html_ready_masked)
-            pdfkit.from_string(filled_html_masked, closed_list_path, configuration=self.config)
+            self.renderer.render(filled_html_masked, closed_list_path)
 
     def get_output_filenames(self, branch: Branch, file_path: str, output_dir: str) -> Tuple[str, str]:
         settings = SettingsDTO.from_json()
@@ -297,11 +292,25 @@ class PdfGeneratorService:
         root_no_ext, ext = os.path.splitext(open_pdf_path)
         out_league = f"{root_no_ext} II liga{ext}"
 
-        pdfkit.from_string(filled_html, out_league, configuration=self.config)
+        self.renderer.render(filled_html, out_league)
 
         if additional_list:
             closed_root_no_ext, closed_ext = os.path.splitext(closed_pdf_path)
             out_league_closed = f"{root_no_ext} II liga - ZAMKNIĘTA{closed_ext}"
             league_masked = self.text_service.mask_pigeon_rings(league_html)
             filled_html_masked = html_template.replace('{{ content }}', league_masked)
-            pdfkit.from_string(filled_html_masked, out_league_closed, configuration=self.config)
+            self.renderer.render(filled_html_masked, out_league_closed)
+
+    def _build_html_from_raw(
+            self,
+            raw_content: str,
+            template_relative_path: str = 'app/templates/pdf_template.html',
+            center_first_page: bool = True
+    ) -> str:
+        html_ready = self.text_service.transform_control_codes(raw_content)
+        if center_first_page:
+            html_ready = self.text_service.center_only_first_page(html_ready)
+
+        template_path = resource_path(template_relative_path)
+        html_template = read_file_utf8(template_path)
+        return html_template.replace('{{ content }}', html_ready)
