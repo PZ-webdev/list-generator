@@ -6,6 +6,7 @@ import pdfkit
 import shutil
 import platform
 
+from app.core.start_clock_pdf_service import StartClockPdfService
 from app.core.text_processing_service import TextProcessingService
 from app.dto.branch import Branch
 from app.dto.settings_dto import SettingsDTO
@@ -16,6 +17,7 @@ from app.utils.resource_helper import resource_path
 class PdfGeneratorService:
     def __init__(self):
         self.text_service = TextProcessingService()
+        self.start_clock_service = StartClockPdfService()
         self.config = pdfkit.configuration(wkhtmltopdf=self._get_wkhtmltopdf_path())
 
     def _get_wkhtmltopdf_path(self) -> str:
@@ -58,7 +60,7 @@ class PdfGeneratorService:
             output_dir: str
     ) -> str:
         raw_content = read_file_cp852(file_path)
-        html_content = self._build_html_from_raw(raw_content)
+        html_content = self.start_clock_service.build_html(raw_content)
 
         output_path = self.get_start_clock_output_filename(
             branch=branch,
@@ -320,10 +322,16 @@ class PdfGeneratorService:
             filled_html_masked = html_template.replace('{{ content }}', league_masked)
             pdfkit.from_string(filled_html_masked, out_league_closed, configuration=self.config)
 
-    def _build_html_from_raw(self, raw_content: str) -> str:
+    def _build_html_from_raw(
+            self,
+            raw_content: str,
+            template_relative_path: str = 'app/templates/pdf_template.html',
+            center_first_page: bool = True
+    ) -> str:
         html_ready = self.text_service.transform_control_codes(raw_content)
-        html_ready = self.text_service.center_only_first_page(html_ready)
+        if center_first_page:
+            html_ready = self.text_service.center_only_first_page(html_ready)
 
-        template_path = resource_path('app/templates/pdf_template.html')
+        template_path = resource_path(template_relative_path)
         html_template = read_file_utf8(template_path)
         return html_template.replace('{{ content }}', html_ready)
