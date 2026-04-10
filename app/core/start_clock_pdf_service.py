@@ -15,7 +15,6 @@ class StartClockPdfService:
 
     def build_html(self, raw_content: str) -> str:
         normalized = self._normalize_comp_column(raw_content)
-        normalized = self._normalize_continuations(normalized)
         normalized = self._normalize_duplicate_headers(normalized)
         normalized = self._ensure_page_break_between_breeders(normalized)
         normalized = self._strip_emphasis_codes(normalized)
@@ -72,33 +71,6 @@ class StartClockPdfService:
 
         return ''.join(out)
 
-    def _normalize_continuations(self, text: str) -> str:
-        lines = text.splitlines(keepends=True)
-        out: List[str] = []
-        i = 0
-
-        while i < len(lines):
-            line = lines[i]
-
-            if self._is_continuation_chunk(lines[i:i + 4]):
-                if out and out[-1].startswith('└'):
-                    out[-1] = self._convert_bottom_border_to_middle(out[-1])
-                i += 4
-                continue
-
-            if line in ('\f', '\x0c'):
-                next_chunk = lines[i + 1:i + 5]
-                if self._is_continuation_chunk(next_chunk):
-                    if out and out[-1].startswith('└'):
-                        out[-1] = self._convert_bottom_border_to_middle(out[-1])
-                    i += 5
-                    continue
-
-            out.append(line)
-            i += 1
-
-        return ''.join(out)
-
     def _normalize_duplicate_headers(self, text: str) -> str:
         lines = text.splitlines(keepends=True)
         out: List[str] = []
@@ -135,24 +107,14 @@ class StartClockPdfService:
         return ''.join(out)
 
     def _wrap_page_segments(self, html: str) -> str:
-        parts = html.split('<div class="page-break"></div>')
+        parts = [
+            part for part in html.split('<div class="page-break"></div>')
+            if part.strip()
+        ]
         wrapped = []
         for part in parts:
             wrapped.append(f'<div class="page"><div class="page-inner">{part}</div></div>')
         return ''.join(wrapped)
-
-    def _is_continuation_chunk(self, lines: List[str]) -> bool:
-        if len(lines) < 4:
-            return False
-
-        breeder_line = lines[0].strip()
-        return (
-            breeder_line != ''
-            and self._looks_like_continuation_breeder_line(breeder_line)
-            and self._is_box_border_line(lines[1], 'top')
-            and self._looks_like_table_header_line(lines[2])
-            and self._is_box_border_line(lines[3], 'mid')
-        )
 
     def _is_duplicate_header_chunk(self, lines: List[str]) -> bool:
         if len(lines) < 5:
@@ -165,17 +127,6 @@ class StartClockPdfService:
             and lines[1] == lines[3]
             and self._is_box_border_line(lines[4], 'mid')
         )
-
-    def _convert_bottom_border_to_middle(self, line: str) -> str:
-        return (
-            line.replace('└', '├')
-            .replace('┴', '┼')
-            .replace('┘', '┤')
-        )
-
-    def _looks_like_continuation_breeder_line(self, line: str) -> bool:
-        import re
-        return re.match(r'^\d+\s*-\s+\S.*$', line) is not None
 
     def _looks_like_table_header_line(self, line: str) -> bool:
         stripped = line.strip()
