@@ -1,11 +1,11 @@
-import pytest
+from unittest import SkipTest
 
 
 def test_tk_smoketest():
     try:
         import tkinter as tk
     except Exception:
-        pytest.skip('Tkinter not available on this environment')
+        raise SkipTest('Tkinter not available on this environment')
 
     try:
         root = tk.Tk()
@@ -13,4 +13,4 @@ def test_tk_smoketest():
         root.update_idletasks()
         root.destroy()
     except Exception:
-        pytest.skip('Headless environment without display; skipping GUI smoke')
+        raise SkipTest('Headless environment without display; skipping GUI smoke')

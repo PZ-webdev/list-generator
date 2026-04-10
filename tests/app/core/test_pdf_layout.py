@@ -1,15 +1,21 @@
 import os
 import glob
 import shutil
-import pytest
+from unittest import SkipTest
 
 
 wkhtmltopdf_path = shutil.which('wkhtmltopdf')
 
 
-@pytest.mark.skipif(wkhtmltopdf_path is None, reason="wkhtmltopdf not available")
 def test_oddzialowa_results_start_on_page_two(tmp_path):
-    pdfminer = pytest.importorskip('pdfminer.high_level')
+    if wkhtmltopdf_path is None:
+        raise SkipTest('wkhtmltopdf not available')
+
+    try:
+        from pdfminer import high_level as pdfminer_high_level
+    except Exception:
+        raise SkipTest('pdfminer not available')
+
     from app.core.pdf_generator_service import PdfGeneratorService
     from app.dto.branch import Branch
 
@@ -31,7 +37,7 @@ def test_oddzialowa_results_start_on_page_two(tmp_path):
     assert pdfs, 'no PDF generated'
     pdf_path = pdfs[0]
 
-    text = pdfminer.high_level.extract_text(pdf_path)
+    text = pdfminer_high_level.extract_text(pdf_path)
     # pdfminer inserts form feed (\x0c) between pages
     pages = text.split('\x0c')
     assert len(pages) >= 2, 'expected multi-page PDF'
@@ -48,4 +54,3 @@ def test_oddzialowa_results_start_on_page_two(tmp_path):
 
     # Ensure placeholder rows like "nr X ... 0  0  0  0.0" are gone
     assert ' NR ' not in first_page.upper() or ' 0.0' not in first_page
-

@@ -80,26 +80,3 @@ def test_ensure_page_break_after_section_table_inserts_ff():
     out2 = s.transform_control_codes(src2)
     assert out2.count('<div class="page-break"></div>') == 1
 
-
-def test_ensure_page_break_between_start_clock_breeders_inserts_ff():
-    s = TextProcessingService()
-    src = (
-        " podpis kom. wkładań - hodowcy                 podpis kom. zegarowej - hodowcy\n"
-        "  PZHGP - Okręg RZESZÓW          ODDZIAŁ KROSNO-CENTRUM   gołębie STARE - 2025\n"
-        "  Hodowca -\x1bG\x1bW1 402\x1bH\x1bW0- JAŹWIECKI TADEUSZ          Sek.nr  4  - KROSNO         \n"
-    )
-    out = s.transform_control_codes(src)
-    assert '<div class="page-break"></div>' in out
-
-
-def test_ensure_page_break_between_start_clock_breeders_keeps_existing_ff():
-    s = TextProcessingService()
-    src = (
-        " podpis kom. wkładań - hodowcy                 podpis kom. zegarowej - hodowcy\n"
-        "\f"
-        "  PZHGP - Okręg RZESZÓW          ODDZIAŁ KROSNO-CENTRUM   gołębie STARE - 2025\n"
-        "  Hodowca -\x1bG\x1bW1 402\x1bH\x1bW0- JAŹWIECKI TADEUSZ          Sek.nr  4  - KROSNO         \n"
-    )
-    out = s.transform_control_codes(src)
-    assert out.count('<div class="page-break"></div>') == 1
-

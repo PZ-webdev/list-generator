@@ -1,7 +1,6 @@
 import os
 from types import SimpleNamespace
-
-import pytest
+from unittest.mock import patch
 
 from app.core.lot_pdf_service import LotPdfService
 from app.dto.branch import Branch
@@ -40,13 +39,11 @@ def test_generate_league2_only_for_lot_calls_generator(tmp_path, monkeypatch):
 
 
 def test_generate_league2_only_to_path_outputs_files(tmp_path, monkeypatch):
-    # Mock wkhtmltopdf and pdfkit
+    # Mock renderer used by PdfGeneratorService
     import app.core.pdf_generator_service as mod
     calls = []
-    monkeypatch.setattr('shutil.which', lambda x: '/usr/bin/wkhtmltopdf')
-    monkeypatch.setattr(mod, 'pdfkit', SimpleNamespace(
-        configuration=lambda wkhtmltopdf=None: object(),
-        from_string=lambda html, output_path, configuration=None: calls.append(output_path)
+    monkeypatch.setattr(mod, 'HtmlPdfRenderer', lambda: SimpleNamespace(
+        render=lambda html, output_path: calls.append(output_path)
     ))
 
     # Mock settings filenames
@@ -61,22 +58,23 @@ def test_generate_league2_only_to_path_outputs_files(tmp_path, monkeypatch):
         is_old_pigeon=False,
     ))
 
-    svc = mod.PdfGeneratorService()
+    with patch.object(mod.PdfGeneratorService, '_build_html_from_raw', return_value='<html>II liga</html>'):
+        svc = mod.PdfGeneratorService()
 
-    # Build input with II-LIGA
-    lot = tmp_path / 'LOT_M_01.001'
-    lot.mkdir()
-    main_txt = lot / 'LKON_M01.TXT'
-    main_txt.write_bytes('MAIN'.encode('cp852'))
-    league_dir = lot / 'II-LIGA'
-    league_dir.mkdir()
-    (league_dir / 'LKON_M01_EXTRA.TXT').write_bytes('LEAGUE2'.encode('cp852'))
+        # Build input with II-LIGA
+        lot = tmp_path / 'LOT_M_01.001'
+        lot.mkdir()
+        main_txt = lot / 'LKON_M01.TXT'
+        main_txt.write_bytes('MAIN'.encode('cp852'))
+        league_dir = lot / 'II-LIGA'
+        league_dir.mkdir()
+        (league_dir / 'LKON_M01_EXTRA.TXT').write_bytes('LEAGUE2'.encode('cp852'))
 
-    out_dir = tmp_path / 'OUT'
-    out_dir.mkdir()
-    branch = Branch(id='1', name='B', number='123', input=str(tmp_path), output=str(tmp_path))
+        out_dir = tmp_path / 'OUT'
+        out_dir.mkdir()
+        branch = Branch(id='1', name='B', number='123', input=str(tmp_path), output=str(tmp_path))
 
-    svc.generate_league2_only_to_path(branch, str(main_txt), str(out_dir), additional_list=True)
+        svc.generate_league2_only_to_path(branch, str(main_txt), str(out_dir), additional_list=True)
 
     # Expect two outputs: II liga and II liga - ZAMKNIĘTA
     assert any(p.endswith(' II liga.pdf') for p in calls)
