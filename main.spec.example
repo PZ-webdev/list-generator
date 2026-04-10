@@ -8,9 +8,11 @@ a = Analysis(
     binaries=[],
     datas=[
         ('data/*.json', 'data'),
-        ('app/templates/*.html', 'templates'),
-        ('app/resources/*.ico', 'resources'),
+        ('data/STERDRUK.TXT', 'data'),
+        ('app/templates/*.html', 'app/templates'),
+        ('app/resources/*.ico', 'app/resources'),
         ('VERSION', '.'),
+        ('CHANGELOG.md', '.'),
     ],
     hiddenimports=[],
     hookspath=[],

@@ -23,21 +23,21 @@ app_logger.addHandler(file_handler)
 app_logger.addHandler(console_handler)
 
 
-def log_info(message):
+def log_info(message: str) -> None:
     app_logger.info(message)
 
 
-def log_warning(message):
+def log_warning(message: str) -> None:
     app_logger.warning(message)
 
 
-def log_error(message):
+def log_error(message: str) -> None:
     app_logger.error(message)
 
 
-def log_debug(message):
+def log_debug(message: str) -> None:
     app_logger.debug(message)
 
 
-def log_critical(message):
+def log_critical(message: str) -> None:
     app_logger.critical(message)

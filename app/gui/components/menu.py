@@ -10,15 +10,13 @@ class AppMenu:
         menubar = tk.Menu(self.app.root)
         self.app.root.config(menu=menubar)
 
-        menu_section = tk.Menu(menubar, tearoff=0)
-        menu_section.add_command(label='Start', command=self.app.show_main_scene)
-        menu_section.add_command(label='Ustawienia', command=self.app.show_settings_scene)
-        menubar.add_cascade(label='Menu', menu=menu_section)
+        menubar.add_command(label="Start", command=self.app.show_main_scene)
+        menubar.add_command(label="Ustawienia", command=self.app.show_settings_scene)
 
-        branches_menu = tk.Menu(menubar, tearoff=0)
-        branches_menu.add_command(label="Oddziały", command=self.app.show_branches_scene)
-        menubar.add_cascade(label="Oddziały", menu=branches_menu)
+        helpmenu = tk.Menu(menubar, tearoff=0)
+        helpmenu.add_command(label="O programie", command=self.app.show_about)
+        helpmenu.add_command(label="Dziennik zmian", command=self.app.show_changelog)
+        menubar.add_cascade(label="Pomoc", menu=helpmenu)
 
-        help_section = tk.Menu(menubar, tearoff=0)
-        help_section.add_command(label='O programie', command=self.app.show_about)
-        menubar.add_cascade(label='Pomoc', menu=help_section)
+        # (opcjonalnie) skrót klawiszowy F1 do "O programie…"
+        self.app.root.bind("<F1>", lambda e: self.app.show_about())

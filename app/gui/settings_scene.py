@@ -1,6 +1,11 @@
+import os
+import json
 import tkinter as tk
 from tkinter import ttk, filedialog
+from tkinter import scrolledtext
+import shutil
 
+import config
 from app.dto.settings_dto import SettingsDTO
 from app.utils.logger import log_warning
 from app.utils.notifier import show_success, show_error
@@ -25,16 +30,25 @@ class SettingsScene:
         self.app = app
         self.frame = ttk.Frame(self.app.main_frame)
 
+        self.is_old_var = tk.BooleanVar(value=False)
+        self._shortcuts_bound = False
+
     def build(self):
         self.frame.pack(fill='both', expand=True)
+
+        header = ttk.Frame(self.frame)
+        header.pack(fill='x', padx=10, pady=(10, 0))
+        ttk.Label(header, text="Ustawienia", font=("TkDefaultFont", 11, "bold")).pack(side='left')
+        ttk.Label(header, text="Skrót: Ctrl+S", foreground="#555").pack(side='left', padx=(10, 0))
+        ttk.Button(header, text="Zapisz", command=self.save_settings).pack(side='right')
+
         tabs = ttk.Notebook(self.frame)
-
         self.build_lists_tab(tabs)
-
+        self.build_other_tab(tabs)
         tabs.pack(fill='both', expand=True, padx=10, pady=10)
 
-        save_btn = ttk.Button(self.frame, text="Zapisz", command=self.save_settings)
-        save_btn.pack(pady=10)
+        # Zapisywanie dostępne przez skrót klawiaturowy (Ctrl+S) na tej scenie
+        self._bind_shortcuts()
 
         self.load_settings()
 
@@ -42,8 +56,22 @@ class SettingsScene:
         lists_tab = ttk.Frame(tabs)
         tabs.add(lists_tab, text="Ogólne")
 
+        global_frame = ttk.LabelFrame(lists_tab, text="Ustawienia globalne (sezon)")
+        global_frame.grid(row=0, column=0, padx=20, pady=(10, 0), sticky='nsew')
+
+        chk = ttk.Checkbutton(
+            global_frame,
+            text="Generuj dla gołębi STARYCH (odznaczone = MŁODE)",
+            variable=self.is_old_var,
+            command=lambda: self.status_label.config(text=self._status_text())
+        )
+        chk.grid(row=0, column=0, sticky='w', padx=8, pady=8)
+
+        self.status_label = ttk.Label(global_frame, text=self._status_text())
+        self.status_label.grid(row=0, column=1, sticky='w', padx=8, pady=8)
+
         frame_templates = ttk.LabelFrame(lists_tab, text="Nazwy plików PDF")
-        frame_templates.grid(row=0, column=0, padx=20, pady=10, sticky='nsew')
+        frame_templates.grid(row=1, column=0, padx=20, pady=10, sticky='nsew')
 
         self.template_vars = {}
         for i, (label, key) in enumerate(labels):
@@ -53,8 +81,16 @@ class SettingsScene:
             self.template_vars[key] = var
             ttk.Entry(frame_templates, textvariable=var, width=50).grid(row=i, column=1, padx=5, pady=3)
 
+        ttk.Label(
+            frame_templates,
+            text="Zmienne: {BRANCH}=oddział, {DATE}=RRRRMMDD, {SECTION}=sekcja.",
+            foreground="#555",
+            wraplength=520,
+            justify="left",
+        ).grid(row=len(labels), column=0, columnspan=2, sticky='w', padx=5, pady=(4, 2))
+
         frame_files = ttk.LabelFrame(lists_tab, text="Kolejność doklejanych plików")
-        frame_files.grid(row=1, column=0, padx=20, pady=10, sticky='nsew')
+        frame_files.grid(row=2, column=0, padx=20, pady=10, sticky='nsew')
 
         self.file_order = ['PHD_1AS.TXT', 'PHDOD1A.TXT']
         self.file_listbox = tk.Listbox(frame_files, height=4, width=40)
@@ -65,16 +101,15 @@ class SettingsScene:
         tk.Button(frame_files, text="Dół", command=self.move_down).grid(row=1, column=1, sticky='w', padx=5, pady=5)
 
         frame_mask = ttk.LabelFrame(lists_tab, text="Maskowanie nazw obrączek")
-        frame_mask.grid(row=2, column=0, padx=20, pady=10, sticky='nsew')
+        frame_mask.grid(row=3, column=0, padx=20, pady=10, sticky='nsew')
 
-        self.ring_mask_var = tk.StringVar(value="#####")
+        self.ring_mask_var = tk.StringVar(value="XXXXX")
         ttk.Entry(frame_mask, textvariable=self.ring_mask_var, width=40).grid(row=0, column=0, padx=5, pady=5)
 
         frame_output_dir = ttk.LabelFrame(lists_tab, text="Domyślny katalog dla pojedynczego PDF")
-        frame_output_dir.grid(row=3, column=0, padx=20, pady=10, sticky='nsew')
+        frame_output_dir.grid(row=4, column=0, padx=20, pady=10, sticky='nsew')
 
         self.default_pdf_dir = tk.StringVar(value="")
-
         entry = ttk.Entry(frame_output_dir, textvariable=self.default_pdf_dir, width=50, state='readonly')
         entry.grid(row=0, column=0, padx=5, pady=5)
 
@@ -83,29 +118,80 @@ class SettingsScene:
             if selected_dir:
                 self.default_pdf_dir.set(selected_dir)
 
-        tk.Button(frame_output_dir, text="Wybierz katalog", command=choose_directory).grid(row=0, column=1, padx=5,
-                                                                                           pady=5)
+        tk.Button(frame_output_dir, text="Wybierz katalog", command=choose_directory).grid(
+            row=0, column=1, padx=5, pady=5
+        )
+
+    def build_other_tab(self, tabs: ttk.Notebook):
+        other_tab = ttk.Frame(tabs)
+        tabs.add(other_tab, text="Inne")
+
+        examples_frame = ttk.LabelFrame(other_tab, text="Przykładowy STERDRUK.TXT")
+        examples_frame.pack(fill="x", padx=20, pady=10)
+
+        ex_buttons = ttk.Frame(examples_frame)
+        ex_buttons.pack(anchor="w", padx=8, pady=8)
+
+        preview_btn = ttk.Button(ex_buttons, text="Podgląd", command=self.preview_sterdruk)
+        preview_btn.grid(row=0, column=0, padx=(0, 10), pady=(0, 6), sticky="w")
+
+        save_btn = ttk.Button(ex_buttons, text="Zapisz", command=self.save_sterdruk)
+        save_btn.grid(row=0, column=1, padx=(0, 10), pady=(0, 6), sticky="w")
 
     def load_settings(self):
+        data = {}
+
         try:
-            settings = SettingsDTO.from_json()
-
-            for key in self.template_vars:
-                value = getattr(settings, key, "").strip()
-                if value:
-                    self.template_vars[key].set(value)
-                else:
-                    self.template_vars[key].set(self.default_templates.get(key, ""))
-
-            self.file_order = settings.attached_files
-            self.refresh_file_listbox()
-
-            self.ring_mask_var.set(settings.ring_mask)
-
-            self.default_pdf_dir.set(settings.default_pdf_dir)
-
+            with open(config.SETTINGS_FILE, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+                if isinstance(raw, dict):
+                    data = raw
+        except FileNotFoundError:
+            data = {}
         except Exception as e:
-            log_warning("Nie udało się załadować ustawień, lub nie znaleziono pliku")
+            log_warning(f"Nie udało się odczytać settings.json: {e}")
+            data = {}
+
+        is_old = bool(data.get("is_old_pigeon", data.get("is_old_pigeon", False)))
+        self.is_old_var.set(is_old)
+        if hasattr(self, "status_label"):
+            self.status_label.config(text=self._status_text())
+
+        for key in self.template_vars:
+            value = (data.get(key) or "").strip()
+            self.template_vars[key].set(value if value else default_templates.get(key, ""))
+
+        self.file_order = data.get("attached_files", self.file_order)
+        self.refresh_file_listbox()
+
+        self.ring_mask_var.set(data.get("ring_mask", self.ring_mask_var.get()))
+        self.default_pdf_dir.set(data.get("default_pdf_dir", self.default_pdf_dir.get()))
+
+    def _on_save_shortcut(self, event=None):
+        self.save_settings()
+        return "break"
+
+    def _bind_shortcuts(self):
+        if self._shortcuts_bound:
+            return
+        root = self.app.root
+        try:
+            root.bind("<Control-s>", self._on_save_shortcut)
+            root.bind("<Control-S>", self._on_save_shortcut)
+            self._shortcuts_bound = True
+        except Exception:
+            pass
+
+    def _unbind_shortcuts(self):
+        if not self._shortcuts_bound:
+            return
+        root = self.app.root
+        try:
+            root.unbind("<Control-s>")
+            root.unbind("<Control-S>")
+        except Exception:
+            pass
+        self._shortcuts_bound = False
 
     def move_up(self):
         idx = self.file_listbox.curselection()
@@ -136,8 +222,90 @@ class SettingsScene:
             filename_section_closed=self.template_vars['filename_section_closed'].get(),
             attached_files=self.file_order,
             ring_mask=self.ring_mask_var.get(),
-            default_pdf_dir=self.default_pdf_dir.get()
+            default_pdf_dir=self.default_pdf_dir.get(),
+            is_old_pigeon=self.is_old_var.get()
         )
 
+        try:
+            setattr(settings, "is_old_pigeon", bool(self.is_old_var.get()))
+        except Exception:
+            pass
+
         settings.to_json()
+
+        try:
+            path = config.SETTINGS_FILE
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if not isinstance(data, dict):
+                    data = {}
+            except Exception:
+                data = {}
+
+            data["is_old_pigeon"] = bool(self.is_old_var.get())
+
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = f"{path}.tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp, path)
+        except Exception as e:
+            show_error(f"Nie udało się zapisać ustawienia sezonu: {e}")
+            return
+
         show_success('Zapisano ustawienia!')
+
+    def _status_text(self) -> str:
+        return f"Aktualny typ: {'STARE' if self.is_old_var.get() else 'MŁODE'}"
+
+    def on_leave(self):
+        # Wywoływane przy zmianie sceny — odpinamy skróty
+        self._unbind_shortcuts()
+
+    # ----- INNE: STERDRUK helpers -----
+    def _sterdruk_path(self) -> str:
+        # Use packaged resource when frozen, else config path in repo
+        try:
+            import sys
+            if getattr(sys, 'frozen', False):
+                from app.utils.resource_helper import resource_path
+                return resource_path('data/STERDRUK.TXT')
+        except Exception:
+            pass
+        return str(config.STERDRUK_FILE)
+
+    def preview_sterdruk(self):
+        path = self._sterdruk_path()
+        if not os.path.exists(path):
+            show_error('Nie znaleziono pliku STERDRUK.TXT w zasobach aplikacji.')
+            return
+        try:
+            from app.utils.file_utils import read_file_cp852
+            content = read_file_cp852(path)
+        except Exception:
+            content = ''
+
+        win = tk.Toplevel(self.frame)
+        win.title('Podgląd: STERDRUK.TXT')
+        win.geometry('700x500')
+
+        txt = scrolledtext.ScrolledText(win, wrap='none', font=('Courier New', 9))
+        txt.pack(fill='both', expand=True)
+        txt.insert('1.0', content)
+        txt.configure(state='disabled')
+
+    def save_sterdruk(self):
+        path = self._sterdruk_path()
+        if not os.path.exists(path):
+            show_error('Nie znaleziono pliku STERDRUK.TXT w zasobach aplikacji.')
+            return
+        target = filedialog.asksaveasfilename(defaultextension='.TXT', initialfile='STERDRUK.TXT',
+                                              filetypes=[('Plik tekstowy', '*.TXT'), ('Wszystkie', '*.*')])
+        if not target:
+            return
+        try:
+            shutil.copyfile(path, target)
+            show_success('Zapisano kopię pliku STERDRUK.TXT')
+        except Exception as e:
+            show_error(f'Nie udało się zapisać pliku: {e}')

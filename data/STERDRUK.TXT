@@ -1,0 +1,23 @@
+---- ZNAKI STERUJACE na "BJC-240" (Emulacja Automatyczna) ----
+G                   - druk gruby
+H                   - kasuje druk gruby
+W1                  - druk rozszerzony 2* (5 zn./1")
+W0                  - kasuje druk rozszerzony
+                    - druk sciesniony
+                    - wydruk podstawowy (10 zn./1")
+:                   - 96 znakow w wierszu (12 zn./1")
+0                   - odstep wiersza 1/8"
+32                  - odstep wiersza 50/216"
+                    - wysuwa strone
+36                  - odstep wiersza 1/4"
+2                   - odstep wiersza 1/6" (standard)
+---- POLSKIE ZNAKI SYSTEMU "LATIN-2" ----
+•§   - aA
+Üè   - cC
+©®   - eE
+àù   - lL
+‰„   - nN
+¢‡   - oO
+òó   - sS
+æΩ   - zZ (jak zaba)
+´ç   - zZ (jak zrodlo)

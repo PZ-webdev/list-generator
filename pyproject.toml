@@ -1,12 +1,17 @@
 [project]
 name = "list-generator"
-version = "0.1.0"
+version = "1.0.0"
 description = "A tool for generating PDFs with cp852 and utf-8 handling"
 requires-python = ">=3.8,<3.9"
 
 dependencies = [
     "pdfkit",
     "chardet"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
 ]
 
 [build-system]
