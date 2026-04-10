@@ -1,26 +1,6 @@
 from app.core.start_clock_pdf_service import StartClockPdfService
 
 
-def test_normalize_start_clock_continuations_removes_internal_ff_and_headers():
-    s = StartClockPdfService()
-    src = (
-        "│ G│PL-503-25---720│        │01│          │ 16│   │       │                 │\n"
-        "└──┴───────────────┴────────┴──┴──────────┴──────┴───┴───────┴─────────────────┘\n"
-        "\f"
-        "      401 - ARGASIŃSKI PIOTR      \n"
-        "┌──┬───────────────┬────────┬──┬──────────┬──────┬───┬───────┬─────────────────┐\n"
-        "│MP│OBRĄCZKA RODOWA│ BARWA  │PŁ│OBR.GUMOWA│ KOMP │SER│KOLEJNY│  CZAS PRZYLOTU  │\n"
-        "├──┼───────────────┼────────┼──┼──────────┼──────┼───┼───────┼─────────────────┤\n"
-        "│ G│PL-503-25---721│        │01│          │ 17│   │       │                 │\n"
-    )
-    out = s._normalize_continuations(src)
-    assert '\f' not in out
-    assert '401 - ARGASIŃSKI PIOTR' not in out
-    assert 'OBRĄCZKA RODOWA' not in out
-    assert '├──┼' in out
-    assert 'PL-503-25---721' in out
-
-
 def test_normalize_start_clock_duplicate_headers_collapses_repeated_block():
     s = StartClockPdfService()
     src = (
@@ -44,6 +24,13 @@ def test_wrap_page_segments_creates_separate_pages():
     out = s._wrap_page_segments("A<div class=\"page-break\"></div>B")
     assert out.count('<div class="page">') == 2
     assert 'page-inner' in out
+
+
+def test_wrap_page_segments_ignores_empty_trailing_page_break():
+    s = StartClockPdfService()
+    out = s._wrap_page_segments("A<div class=\"page-break\"></div>")
+    assert out.count('<div class="page">') == 1
+    assert 'A' in out
 
 
 def test_strip_emphasis_codes_removes_start_clock_highlight_markup():
@@ -78,3 +65,19 @@ def test_get_output_filename_is_start_clock_specific(tmp_path):
     branch = Branch(id='1', name='B', number='123', input=str(tmp_path), output=str(tmp_path))
     out = s.get_output_filename(branch, str(tmp_path))
     assert out == str(tmp_path / 'LISTA STARTOWO-ZEGAROWA.pdf')
+
+
+def test_build_html_preserves_existing_page_breaks_between_breeder_segments():
+    s = StartClockPdfService()
+    raw = (
+        "  Hodowca -\x1bG\x1bW1 401\x1bH\x1bW0- TEST HODOWCA           Sek.nr  4  - KROSNO         \n"
+        "ł GłPL-503-25---701ł        ł01ł          ł\x1bG\x1bW1  1\x1bH\x1bW0ł   ł       ł                 ł\n"
+        "\f"
+        "      401 - TEST HODOWCA      \n"
+        "ÚÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄż\n"
+        "łMPłOBR¤CZKA RODOWAł BARWA  łPťłOBR.GUMOWAł KOMP łSERłKOLEJNYł  CZAS PRZYLOTU  ł\n"
+        "ĂÄÄĹÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄĹÄÄÄÄÄÄÄÄĹÄÄĹÄÄÄÄÄÄÄÄÄÄĹÄÄÄÄÄÄĹÄÄÄĹÄÄÄÄÄÄÄĹÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´\n"
+        "ł GłPL-503-25---702ł        ł01ł          ł\x1bG\x1bW1 21\x1bH\x1bW0ł   ł       ł                 ł\n"
+    )
+    out = s.build_html(raw)
+    assert out.count('<div class="page"><div class="page-inner">') == 2
